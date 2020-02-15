@@ -1,0 +1,361 @@
+diff --git a/LibOS/shim/include/shim_handle.h b/LibOS/shim/include/shim_handle.h
+index 7065a4a..a95343b 100644
+--- a/LibOS/shim/include/shim_handle.h
++++ b/LibOS/shim/include/shim_handle.h
+@@ -383,8 +383,8 @@ struct shim_fd_handle {
+     struct shim_handle * handle;
+ };
+ 
+-#define MAX_MAX_FDS         (65536)
+-#define DEFAULT_MAX_FDS     (1024)
++#define MAX_MAX_FDS         (65536) /*(512) - only via ulimit; otherwise prob. if compared to lwIP fd inside app*/
++#define DEFAULT_MAX_FDS     (1024) /*(512) - cf. above */
+ extern unsigned int max_fds;
+ 
+ struct shim_handle_map {
+diff --git a/LibOS/shim/include/shim_table.h b/LibOS/shim/include/shim_table.h
+index 8338132..d4e6fbd 100644
+--- a/LibOS/shim/include/shim_table.h
++++ b/LibOS/shim/include/shim_table.h
+@@ -643,6 +643,10 @@ int shim_setregid (gid_t rgid, gid_t egid);
+ int shim_getgroups (int gidsetsize, gid_t * grouplist);
+ int shim_setgroups (int gidsetsize, gid_t * grouplist);
+ int shim_setresuid (uid_t ruid, uid_t euid, uid_t suid);
++/* custom start */
++int shim_do_setresuid (uid_t ruid, uid_t euid, uid_t suid);
++int shim_do_setresgid (gid_t rgid, gid_t egid, gid_t sgid);
++/* custom end */
+ int shim_getresuid (uid_t * ruid, uid_t * euid, uid_t * suid);
+ int shim_setresgid (gid_t rgid, gid_t egid, gid_t sgid);
+ int shim_getresgid (gid_t * rgid, gid_t * egid, gid_t * sgid);
+diff --git a/LibOS/shim/src/shim_syscalls.c b/LibOS/shim/src/shim_syscalls.c
+index 1c8ac31..15bd360 100644
+--- a/LibOS/shim/src/shim_syscalls.c
++++ b/LibOS/shim/src/shim_syscalls.c
+@@ -536,14 +536,18 @@ SHIM_SYSCALL_PASSTHROUGH (getgroups, 2, int, int, gidsetsize, gid_t *,
+ SHIM_SYSCALL_PASSTHROUGH (setgroups, 2, int, int, gidsetsize, gid_t *,
+                           grouplist)
+ 
+-SHIM_SYSCALL_PASSTHROUGH (setresuid, 3, int, uid_t, ruid, uid_t, euid, uid_t,
+-                          suid)
++//SHIM_SYSCALL_PASSTHROUGH (setresuid, 3, int, uid_t, ruid, uid_t, euid, uid_t,
++//                          suid)
++
++DEFINE_SHIM_SYSCALL (setresuid, 3, shim_do_setresuid, int, uid_t, ruid, uid_t, euid, uid_t, suid)
+ 
+ SHIM_SYSCALL_PASSTHROUGH (getresuid, 3, int, uid_t *, ruid, uid_t *, euid,
+                           uid_t *, suid)
+ 
+-SHIM_SYSCALL_PASSTHROUGH (setresgid, 3, int, gid_t, rgid, gid_t, egid, gid_t,
+-                          sgid)
++//SHIM_SYSCALL_PASSTHROUGH (setresgid, 3, int, gid_t, rgid, gid_t, egid, gid_t,
++//                          sgid)
++
++DEFINE_SHIM_SYSCALL (setresgid, 3, shim_do_setresgid, int, gid_t, rgid, gid_t, egid, gid_t, sgid)
+ 
+ SHIM_SYSCALL_PASSTHROUGH (getresgid, 3, int, gid_t *, rgid, gid_t *, egid,
+                           gid_t *, sgid)
+diff --git a/LibOS/shim/src/sys/shim_getpid.c b/LibOS/shim/src/sys/shim_getpid.c
+index 255525c..1f554cf 100644
+--- a/LibOS/shim/src/sys/shim_getpid.c
++++ b/LibOS/shim/src/sys/shim_getpid.c
+@@ -74,9 +74,30 @@ gid_t shim_do_getgid (void)
+     return cur ? cur->gid : 0;
+ }
+ 
++// custom start
++int shim_do_setresuid (uid_t ruid, uid_t euid, uid_t suid) {
++    //if (ruid != suid || ruid != -1) return -ENOSYS;
++    struct shim_thread * cur = get_cur_thread();
++    if(cur == NULL) return -1;
++    cur->euid = (uint16_t) euid;
++    // ignore ruid and suid ...
++    return 0;
++}
++
++int shim_do_setresgid (gid_t rgid, gid_t egid, gid_t sgid) {
++    //if (rgid != sgid || rgid != -1) return -ENOSYS;
++    struct shim_thread * cur = get_cur_thread();
++    if(cur == NULL) return -1;
++    cur->egid = (uint16_t) egid;
++    // ignore rgid and sgid ...
++    return 0;
++}
++// custom end
++
+ int shim_do_setuid (uid_t uid)
+ {
+     struct shim_thread * cur = get_cur_thread();
++    if (cur == NULL) return -1;
+     cur->euid = (uint16_t) uid;
+     return 0;
+ }
+diff --git a/LibOS/shim/src/sys/shim_poll.c b/LibOS/shim/src/sys/shim_poll.c
+index 9162153..f977e0f 100644
+--- a/LibOS/shim/src/sys/shim_poll.c
++++ b/LibOS/shim/src/sys/shim_poll.c
+@@ -420,7 +420,8 @@ int shim_do_poll (struct pollfd * fds, nfds_t nfds, int timeout)
+         if (polls[i].flags & RET_W)
+             fds[i].revents |= (fds[i].events & (POLLOUT|POLLWRNORM));
+         if (polls[i].flags & RET_E)
+-            fds[i].revents |= (fds[i].events & (POLLERR|POLLHUP));
++            fds[i].revents |= (POLLERR|POLLHUP);
++            // BUG #592: fds[i].revents |= (fds[i].events & (POLLERR|POLLHUP));
+ 
+         if (fds[i].revents)
+             ret++;
+diff --git a/LibOS/shim/test/apps/lmbench/lmbench-2.5 b/LibOS/shim/test/apps/lmbench/lmbench-2.5
+index 33d3db0..695ed29 160000
+--- a/LibOS/shim/test/apps/lmbench/lmbench-2.5
++++ b/LibOS/shim/test/apps/lmbench/lmbench-2.5
+@@ -1 +1 @@
+-Subproject commit 33d3db09ac06920213605cca46cf1f5a022eed80
++Subproject commit 695ed29fa2cef9640fa1316fb1d84263c060299f
+diff --git a/Pal/src/host/FreeBSD/db_events.c b/Pal/src/host/FreeBSD/db_events.c
+index cea539b..752d480 100644
+--- a/Pal/src/host/FreeBSD/db_events.c
++++ b/Pal/src/host/FreeBSD/db_events.c
+@@ -75,7 +75,7 @@ int _DkEventSet (PAL_HANDLE event, int wakeup)
+                              UMTX_OP_WAKE, 1, NULL, NULL);
+     }
+ 
+-    return IS_ERR(ret) ? PAL_ERROR_TRYAGAIN : ret;
++    return IS_ERR(ret) ? -PAL_ERROR_TRYAGAIN : ret;
+ }
+ 
+ int _DkEventWaitTimeout (PAL_HANDLE event, uint64_t timeout)
+diff --git a/Pal/src/host/Linux-SGX/db_events.c b/Pal/src/host/Linux-SGX/db_events.c
+index 6e1548e..b8c29e3 100644
+--- a/Pal/src/host/Linux-SGX/db_events.c
++++ b/Pal/src/host/Linux-SGX/db_events.c
+@@ -25,6 +25,7 @@
+ 
+ #include "pal_defs.h"
+ #include "pal_linux_defs.h"
++#include "pal_linux_error.h"
+ #include "pal.h"
+ #include "pal_internal.h"
+ #include "pal_linux.h"
+@@ -67,7 +68,7 @@ int _DkEventSet (PAL_HANDLE event, int wakeup)
+                 ret = ocall_futex((int *) &event->event.signaled->counter,
+                                   FUTEX_WAKE, nwaiters, NULL);
+ 
+-                if (ret < 0)
++                if (IS_ERR(ret))
+                     atomic_set(event->event.signaled, 0);
+             }
+         }
+@@ -75,11 +76,9 @@ int _DkEventSet (PAL_HANDLE event, int wakeup)
+         // Only one thread wakes up, leave unsignaled
+         ret = ocall_futex((int *) &event->event.signaled->counter,
+                           FUTEX_WAKE, 1, NULL);
+-        if (ret < 0)
+-             return ret;
+     }
+ 
+-    return ret;
++    return IS_ERR(ret) ? -PAL_ERROR_TRYAGAIN : ret;
+ }
+ 
+ int _DkEventWaitTimeout (PAL_HANDLE event, uint64_t timeout)
+@@ -94,11 +93,13 @@ int _DkEventWaitTimeout (PAL_HANDLE event, uint64_t timeout)
+         do {
+             ret = ocall_futex((int *) &event->event.signaled->counter,
+                               FUTEX_WAIT, 0, timeout ? &waittime : NULL);
+-            if (ret < 0) {
+-                if (ret == -PAL_ERROR_TRYAGAIN)
++            if (IS_ERR(ret)) {
++                if (ERRNO(ret) == EWOULDBLOCK) {
+                     ret = 0;
+-                else
++                } else {
++                    ret = unix_to_pal_error(ERRNO(ret));
+                     break;
++                }
+             }
+         } while (event->event.isnotification &&
+                  !atomic_read(event->event.signaled));
+@@ -119,11 +120,13 @@ int _DkEventWait (PAL_HANDLE event)
+         do {
+             ret = ocall_futex((int *) &event->event.signaled->counter,
+                               FUTEX_WAIT, 0, NULL);
+-            if (ret < 0) {
+-                if (ret == -PAL_ERROR_TRYAGAIN)
++            if (IS_ERR(ret)) {
++                if (ERRNO(ret) == EWOULDBLOCK) {
+                     ret = 0;
+-                else
++                } else {
++                    ret = unix_to_pal_error(ERRNO(ret));
+                     break;
++                }
+             }
+         } while (event->event.isnotification &&
+                  !atomic_read(event->event.signaled));
+diff --git a/Pal/src/host/Linux-SGX/db_mutex.c b/Pal/src/host/Linux-SGX/db_mutex.c
+index f6c39c2..5cedac2 100644
+--- a/Pal/src/host/Linux-SGX/db_mutex.c
++++ b/Pal/src/host/Linux-SGX/db_mutex.c
+@@ -27,6 +27,7 @@
+ 
+ #include "pal_defs.h"
+ #include "pal_linux_defs.h"
++#include "pal_linux_error.h"
+ #include "pal.h"
+ #include "pal_internal.h"
+ #include "pal_linux.h"
+@@ -86,11 +87,13 @@ int _DkMutexLockTimeout (struct mutex_handle * m, uint64_t timeout)
+          */
+         ret = ocall_futex((int *) m->locked, FUTEX_WAIT, MUTEX_LOCKED, timeout == -1 ? NULL : &timeout);
+ 
+-        if (ret < 0) {
+-            if (-ret == EWOULDBLOCK) {
+-                ret = -PAL_ERROR_TRYAGAIN;
+-                atomic_dec(&m->nwaiters);
+-                goto out;
++        if (IS_ERR(ret)) {
++            if (ERRNO(ret) == EWOULDBLOCK) {
++                if (timeout != NO_TIMEOUT) {
++                    ret = -PAL_ERROR_TRYAGAIN;
++                    atomic_dec(&m->nwaiters);
++                    goto out;
++                }
+             }
+             ret = unix_to_pal_error(ERRNO(ret));
+             atomic_dec(&m->nwaiters);
+diff --git a/Pal/src/host/Linux-SGX/pal_linux.h b/Pal/src/host/Linux-SGX/pal_linux.h
+index 0e5ff29..a04a92b 100644
+--- a/Pal/src/host/Linux-SGX/pal_linux.h
++++ b/Pal/src/host/Linux-SGX/pal_linux.h
+@@ -203,11 +203,11 @@ extern struct pal_enclave_config {
+ #define DBG_P   0x10
+ #define DBG_M   0x20
+ 
+-#ifdef DEBUG
++/*#ifdef DEBUG
+ # define DBG_LEVEL (DBG_E|DBG_I|DBG_D|DBG_S)
+-#else
++#else*/
+ # define DBG_LEVEL (DBG_E)
+-#endif
++/*#endif*/
+ 
+ #ifdef IN_ENCLAVE
+ #define SGX_DBG(class, fmt...) \
+diff --git a/Pal/src/host/Linux-SGX/sgx_enclave.c b/Pal/src/host/Linux-SGX/sgx_enclave.c
+index f65cd86..ddc7373 100644
+--- a/Pal/src/host/Linux-SGX/sgx_enclave.c
++++ b/Pal/src/host/Linux-SGX/sgx_enclave.c
+@@ -239,6 +239,10 @@ static int sgx_ocall_create_process(void * pms)
+     return 0;
+ }
+ 
++/* sgx_ocall_futex return unix errno instead of PAL_ERROR
++ * because PAL_ERROR doesn't distinguish ETIMEDOUT and EAGAIN.
++ * In futex case, they needs to be distinguished.
++ */
+ static int sgx_ocall_futex(void * pms)
+ {
+     ms_ocall_futex_t * ms = (ms_ocall_futex_t *) pms;
+@@ -252,7 +256,7 @@ static int sgx_ocall_futex(void * pms)
+     }
+     ret = INLINE_SYSCALL(futex, 6, ms->ms_futex, ms->ms_op, ms->ms_val,
+                          ts, NULL, 0);
+-    return IS_ERR(ret) ? unix_to_pal_error(ERRNO(ret)) : ret;
++    return ret;
+ }
+ 
+ static int sgx_ocall_socketpair(void * pms)
+diff --git a/Pal/src/host/Linux-SGX/sgx_main.c b/Pal/src/host/Linux-SGX/sgx_main.c
+index c786c84..2ca8101 100644
+--- a/Pal/src/host/Linux-SGX/sgx_main.c
++++ b/Pal/src/host/Linux-SGX/sgx_main.c
+@@ -827,6 +827,7 @@ static int load_enclave (struct pal_enclave * enclave,
+ 
+ int main (int argc, const char ** argv, const char ** envp)
+ {
++//    struct timeval tv_begin;
+     const char * manifest_uri = NULL;
+     char * exec_uri = NULL;
+     const char * pal_loader = argv[0];
+@@ -837,6 +838,9 @@ int main (int argc, const char ** argv, const char ** envp)
+     argc--;
+     argv++;
+ 
++//    INLINE_SYSCALL(gettimeofday, 2, &tv_begin, NULL);
++//    printf("%ld\n", tv_begin.tv_sec * 1000000UL + tv_begin.tv_usec);
++
+     struct pal_enclave * enclave = malloc(sizeof(struct pal_enclave));
+     if (!enclave)
+         return -ENOMEM;
+diff --git a/Pal/src/host/Linux-SGX/signer/pal-sgx-sign b/Pal/src/host/Linux-SGX/signer/pal-sgx-sign
+index bcb35c2..81ba6e9 100755
+--- a/Pal/src/host/Linux-SGX/signer/pal-sgx-sign
++++ b/Pal/src/host/Linux-SGX/signer/pal-sgx-sign
+@@ -313,6 +313,7 @@ class MemoryArea:
+         if file:
+             loadcmds = get_loadcmds(file)
+             if loadcmds:
++                print 'loadcmds branch for ' + self.desc
+                 mapaddr = 0xffffffffffffffff
+                 mapaddr_end = 0
+                 for (offset, addr, filesize, memsize, prot) in loadcmds:
+@@ -326,6 +327,7 @@ class MemoryArea:
+                 if mapaddr > 0:
+                     self.addr = mapaddr
+             else:
++                print 'os.start branch for ' + self.desc
+                 self.size = os.stat(file).st_size
+ 
+         if self.addr is not None:
+@@ -355,10 +357,13 @@ def get_memory_areas(manifest, attr, args):
+ 
+ def populate_memory_areas(manifest, attr, areas):
+     populating = attr['enclave_size']
++    print "populating: "+str(populating)
+ 
+     for area in areas:
+         if area.addr is not None:
+             continue
++        print 'area.desc: ' + area.desc
++        print 'area.size: ' + str(area.size)
+ 
+         area.addr = populating - area.size
+         if area.addr < ENCLAVE_HEAP_MIN:
+diff --git a/Pal/src/host/Linux/db_events.c b/Pal/src/host/Linux/db_events.c
+index 42d4bad..01a15f5 100644
+--- a/Pal/src/host/Linux/db_events.c
++++ b/Pal/src/host/Linux/db_events.c
+@@ -72,7 +72,7 @@ int _DkEventSet (PAL_HANDLE event, int wakeup)
+                              NULL, NULL, 0);
+     }
+ 
+-    return IS_ERR(ret) ? PAL_ERROR_TRYAGAIN : ret;
++    return IS_ERR(ret) ? -PAL_ERROR_TRYAGAIN : ret;
+ }
+ 
+ int _DkEventWaitTimeout (PAL_HANDLE event, uint64_t timeout)
+diff --git a/Pal/src/host/Linux/db_mutex.c b/Pal/src/host/Linux/db_mutex.c
+index 4e9e55e..8b0a7ac 100644
+--- a/Pal/src/host/Linux/db_mutex.c
++++ b/Pal/src/host/Linux/db_mutex.c
+@@ -130,14 +130,13 @@ int _DkMutexLockTimeout (struct mutex_handle * m, uint64_t timeout)
+                     atomic_dec(&m->nwaiters);
+                     goto out;
+                 }
+-            } else {
++            }
+ #ifdef DEBUG_MUTEX
+-                printf("futex failed (err = %d)\n", ERRNO(ret));
++            printf("futex failed (err = %d)\n", ERRNO(ret));
+ #endif
+-                ret = unix_to_pal_error(ERRNO(ret));
+-                atomic_dec(&m->nwaiters);
+-                goto out;
+-            }
++            ret = unix_to_pal_error(ERRNO(ret));
++            atomic_dec(&m->nwaiters);
++            goto out;
+         }
+     }
+ 

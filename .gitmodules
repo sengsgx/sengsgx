@@ -1,0 +1,6 @@
+[submodule "seng_runtime/lwip_based_client_lib/externals/lwip"]
+	path = seng_runtime/lwip_based_client_lib/externals/lwip
+	url = https://git.savannah.nongnu.org/git/lwip.git
+[submodule "sgx-ra-tls"]
+	path = sgx-ra-tls
+	url = https://github.com/cloud-security-research/sgx-ra-tls

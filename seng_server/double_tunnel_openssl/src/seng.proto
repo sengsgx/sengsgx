@@ -1,0 +1,84 @@
+syntax = "proto2";
+
+package seng_proto;
+
+// Sent from NGW to Tunnel Netif (setup phase)
+message IpAssignment {
+    required uint32 ip = 1; // 32bit
+    required uint32 netmask = 2; // 32bit
+    required uint32 gw_ip = 3; // 32bit
+}
+
+// Sent from Tunnel Netif to NGW (setup phase)
+message IpAssignACK {
+    required uint32 ip = 1; // 32bit
+}
+
+// Sent from Enclave to NGW
+message ShadowSrvMsg {
+    message RequestCliSockShadowing {
+        required uint32 handle = 1;
+        required uint32 port = 2; // 16bit
+        required uint32 proto = 3; // 8 bit
+    }
+
+    message NotifyAboutClose {
+        required uint32 handle = 1;
+    }
+
+    oneof msg {
+        RequestCliSockShadowing reqShadow = 1;
+        NotifyAboutClose closeNotify = 2;
+    }
+}
+
+// Sent from NGW to CliSB
+message CliBlockerMsg {
+    message RequestSockBlocking {
+        required uint32 port = 1; // 16bit
+        required uint32 proto = 2; // 8bit
+        required bytes mr_enclave = 3; // 256b = 32B = uint8_t[32]
+        required bytes mr_signer = 4; // same
+    }
+
+    message CloseNotify {
+        required uint32 port = 1; // 16bit
+        required uint32 proto = 2; // 8bit
+    }
+
+    oneof msg {
+        RequestSockBlocking sockBlock = 1;
+        CloseNotify closeNotify = 2;
+    }
+}
+
+// Sent from CliSB to NGW
+message CliBlockerReply {
+    enum Replies {
+        DENIED = 0;
+        GRANTED = 1;
+        IN_USE = 2;
+        WAS_NOT_BLOCKED = 3;
+        NOW_UNLBOCKED = 4;
+    }
+    required Replies reply = 1;
+}
+
+// Sent from NGW to Enclave
+message ShadowReqReply {
+    enum Replies {
+        DENIED = 0;
+        GRANTED = 1;
+    }
+    required Replies reply = 1;
+}
+
+// Sent from Enclave to NGW
+message ListenStartConfirm {
+    enum Replies {
+        FAILED = 0;
+        NOW_LISTENING = 1;
+    }
+    required Replies reply = 1;
+}
+// --------------------------------
