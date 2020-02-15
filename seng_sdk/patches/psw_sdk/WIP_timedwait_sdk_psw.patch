@@ -1,0 +1,335 @@
+diff --git a/common/inc/internal/se_error_internal.h b/common/inc/internal/se_error_internal.h
+index fa01c6b..39cf2c1 100644
+--- a/common/inc/internal/se_error_internal.h
++++ b/common/inc/internal/se_error_internal.h
+@@ -85,6 +85,7 @@ typedef enum _se_status_internal_t
+     SE_ERROR_MUTEX_GET_EVENT            = SE_INTERNAL_ERROR(0x3001),
+     SE_ERROR_MUTEX_WAIT_EVENT           = SE_INTERNAL_ERROR(0x3002),
+     SE_ERROR_MUTEX_WAKE_EVENT           = SE_INTERNAL_ERROR(0x3003),
++    SE_ERROR_MUTEX_TIMEOUT_EVENT        = SE_INTERNAL_ERROR(0x3004),
+ } se_status_internal_t;
+ 
+ #endif
+diff --git a/common/inc/internal/se_event.h b/common/inc/internal/se_event.h
+index 5ed0297..bd07737 100644
+--- a/common/inc/internal/se_event.h
++++ b/common/inc/internal/se_event.h
+@@ -43,6 +43,7 @@ typedef void * se_handle_t;
+ #define SE_MUTEX_INVALID    0x1
+ #define SE_MUTEX_ERROR_WAKE 0x2
+ #define SE_MUTEX_ERROR_WAIT 0x3
++#define SE_MUTEX_TIMEOUT    0x4
+ 
+ #ifdef __cplusplus
+ extern "C" {
+@@ -53,6 +54,7 @@ void SGXAPI se_event_destroy(se_handle_t);
+ 
+ int SGXAPI se_event_wait(se_handle_t);
+ int SGXAPI se_event_wake(se_handle_t);
++int SGXAPI se_event_timedwait(se_handle_t, const struct timespec *);
+ 
+ #ifdef __cplusplus
+ }
+diff --git a/common/inc/sgx_thread.h b/common/inc/sgx_thread.h
+index 575b5d2..f2b9ca3 100644
+--- a/common/inc/sgx_thread.h
++++ b/common/inc/sgx_thread.h
+@@ -84,6 +84,12 @@ typedef struct _sgx_thread_cond_attr_t
+     unsigned char       m_dummy;  /* for C syntax check */
+ } sgx_thread_condattr_t;
+ 
++typedef struct _seng_timespec_t
++{
++    long int tv_sec;
++    long tv_nsec;
++} seng_timespec_t;
++
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+@@ -103,6 +109,7 @@ int SGXAPI sgx_thread_cond_destroy(sgx_thread_cond_t *cond);
+ int SGXAPI sgx_thread_cond_wait(sgx_thread_cond_t *cond, sgx_thread_mutex_t *mutex);
+ int SGXAPI sgx_thread_cond_signal(sgx_thread_cond_t *cond);
+ int SGXAPI sgx_thread_cond_broadcast(sgx_thread_cond_t *cond);
++int SGXAPI sgx_thread_cond_timedwait(sgx_thread_cond_t *cond, sgx_thread_mutex_t *mutex, const seng_timespec_t *timeout);
+ 
+ sgx_thread_t SGXAPI sgx_thread_self(void);
+ int sgx_thread_equal(sgx_thread_t a, sgx_thread_t b);
+diff --git a/common/inc/sgx_tstdc.edl b/common/inc/sgx_tstdc.edl
+index 4124deb..250251e 100644
+--- a/common/inc/sgx_tstdc.edl
++++ b/common/inc/sgx_tstdc.edl
+@@ -44,5 +44,11 @@ enclave {
+ 
+         /* Wake multiple threads waiting on their untrusted events */
+         [cdecl] int sgx_thread_set_multiple_untrusted_events_ocall([in, count = total] const void **waiters, size_t total);
++
++        /* Go outstide and wait on my untrusted event with (untrusted) timeout */
++        [cdecl] int sgx_thread_timedwait_untrusted_event_ocall([user_check] const void*self, long int tv_sec, long tv_nsec);
++
++        /* Wake a thread waiting on its untrusted event, and wait on my untrusted event with (untrusted) timeout */
++        [cdecl] int sgx_thread_settimedwait_untrusted_events_ocall([user_check] const void *waiter, [user_check] const void *self, long int tv_sec, long tv_nsec);
+     };
+ };
+diff --git a/common/src/se_event.c b/common/src/se_event.c
+index cfe6f58..ed6d4c0 100644
+--- a/common/src/se_event.c
++++ b/common/src/se_event.c
+@@ -33,6 +33,8 @@
+ #include "se_event.h"
+ 
+ #include <linux/futex.h>
++#include <errno.h>
++#include <assert.h> // for our check
+ 
+ se_handle_t se_event_init(void)
+ {
+@@ -50,8 +52,16 @@ int se_event_wait(se_handle_t se_event)
+     if (se_event == NULL)
+         return SE_MUTEX_INVALID;
+ 
+-    if (__sync_fetch_and_add((int*)se_event, -1) == 0)
+-        syscall(__NR_futex, se_event, FUTEX_WAIT, -1, NULL, NULL, 0);
++    // : if interrupted by a signal, this condition will stay false and
++    //     so the urts will busy-loop rather than use futex() for efficient wait
++    if (__sync_fetch_and_add((int*)se_event, -1) == 0) {
++        long int res = -1;
++        errno = EINTR;
++        // : retry in case an interrupt woke us up
++        // [Note: condition for Linux >= Linux 2.6.22]
++        while (res == -1 && errno == EINTR)
++            res = syscall(__NR_futex, se_event, FUTEX_WAIT, -1, NULL, NULL, 0);
++    }
+ 
+     return SE_MUTEX_SUCCESS;
+ }
+@@ -66,3 +76,45 @@ int se_event_wake(se_handle_t se_event)
+ 
+     return SE_MUTEX_SUCCESS;
+ }
++
++int se_event_timedwait(se_handle_t se_event, const struct timespec *timeout)
++{
++    long int res = -1;
++    if (se_event == NULL)
++        return SE_MUTEX_INVALID;
++
++    // : here above bug can even cause a live-lock in case the condition of
++    //     the condt variable must not necessarily become true eventually;
++    //     because the intended timeout will never get triggered as futex() will
++    //     not be called again;
++    //     also note that timeout counter will reset on EINTR; could be solved
++    //     by using absolute timeouts rather than relative, and recalculating it
++    //     based on the timestamp after EINTR before reentering futex()
++    if (__sync_fetch_and_add((int*)se_event, -1) == 0) {
++        // : loop on interrupt to prevent busy loop / live locks (cf. above)
++        errno = EINTR;
++        while (res == -1 && errno == EINTR) {
++            // TODO: use FUTEX_WAIT_BITSET with FUTEX_BITSET_MATCH_ANY and absolute timeout timestamp
++            //    ++ recalculate timeout to only wait for remaining time after an EINTR
++            res = syscall(__NR_futex, se_event, FUTEX_WAIT, -1, timeout, NULL, 0);
++        }
++    } else {
++        errno = 0; // prevent it from still being ETIMEDOUT
++    }
++
++    if (res == -1 && errno == ETIMEDOUT) {
++        /* reset event value; if == 0 (!= -1) someone tried to wake us in meantime */
++        if (__sync_fetch_and_add((int*)se_event, 1) > -1) {
++            // someone waked us up, set it back to 0
++            int t = __sync_fetch_and_add((int*)se_event, -1);
++            assert(t == 1); // s.t. it now will be 0, i.e. initial idle value
++            (void)(t);
++            // return success
++        } else {
++            // return timed out
++            return SE_MUTEX_TIMEOUT;
++        }
++    }
++
++    return SE_MUTEX_SUCCESS;
++}
+diff --git a/psw/urts/enclave_mutex.cpp b/psw/urts/enclave_mutex.cpp
+index b14438d..59a5be3 100644
+--- a/psw/urts/enclave_mutex.cpp
++++ b/psw/urts/enclave_mutex.cpp
+@@ -93,3 +93,35 @@ extern "C" int sgx_thread_setwait_untrusted_events_ocall(const void *waiter, con
+ 
+     return sgx_thread_wait_untrusted_event_ocall(self);
+ }
++
++extern "C" int sgx_thread_timedwait_untrusted_event_ocall(const void *self, long int tv_sec, long tv_nsec)
++{
++    struct timespec ts = {
++        .tv_sec = tv_sec,
++        .tv_nsec = tv_nsec
++    };
++
++    if (self == NULL)
++        return SGX_ERROR_INVALID_PARAMETER;
++
++    se_handle_t hevent = CEnclavePool::instance()->get_event(self);
++    if (hevent == NULL)
++        return SE_ERROR_MUTEX_GET_EVENT;
++
++    int ret = se_event_timedwait(hevent, &ts);
++    if (SE_MUTEX_TIMEOUT == ret)
++        return SE_ERROR_MUTEX_TIMEOUT_EVENT;
++
++    if (SE_MUTEX_SUCCESS != ret)
++        return SE_ERROR_MUTEX_WAIT_EVENT;
++
++    return SGX_SUCCESS;
++}
++
++extern "C" int sgx_thread_settimedwait_untrusted_events_ocall(const void *waiter, const void *self, long int tv_sec, long tv_nsec)
++{
++    int ret = sgx_thread_set_untrusted_event_ocall(waiter);
++    if (ret != SGX_SUCCESS) return ret;
++
++    return sgx_thread_timedwait_untrusted_event_ocall(self, tv_sec, tv_nsec);
++}
+diff --git a/psw/urts/linux/urts.lds b/psw/urts/linux/urts.lds
+index 5ba4bd1..a93d9ee 100644
+--- a/psw/urts/linux/urts.lds
++++ b/psw/urts/linux/urts.lds
+@@ -9,6 +9,8 @@
+         sgx_thread_set_untrusted_event_ocall;
+         sgx_thread_setwait_untrusted_events_ocall;
+         sgx_thread_set_multiple_untrusted_events_ocall;
++        sgx_thread_timedwait_untrusted_event_ocall;
++        sgx_thread_settimedwait_untrusted_events_ocall;
+         sgx_oc_cpuidex;
+         sgx_get_target_info;
+         sgx_create_encrypted_enclave;
+diff --git a/psw/urts/linux/urts_internal.lds b/psw/urts/linux/urts_internal.lds
+index 3ee5c82..2b29993 100644
+--- a/psw/urts/linux/urts_internal.lds
++++ b/psw/urts/linux/urts_internal.lds
+@@ -9,6 +9,8 @@
+         sgx_thread_set_untrusted_event_ocall;
+         sgx_thread_setwait_untrusted_events_ocall;
+         sgx_thread_set_multiple_untrusted_events_ocall;
++        sgx_thread_timedwait_untrusted_event_ocall;
++        sgx_thread_settimedwait_untrusted_events_ocall;
+         sgx_oc_cpuidex;
+         sgx_get_target_info;
+         sgx_create_encrypted_enclave;
+diff --git a/sdk/simulation/urtssim/urts_deploy.c b/sdk/simulation/urtssim/urts_deploy.c
+index 1fe7cc9..5631323 100644
+--- a/sdk/simulation/urtssim/urts_deploy.c
++++ b/sdk/simulation/urtssim/urts_deploy.c
+@@ -69,4 +69,6 @@ void sgx_thread_set_multiple_untrusted_events_ocall(){};
+ void sgx_thread_set_untrusted_event_ocall(){};
+ void sgx_thread_setwait_untrusted_events_ocall(){};
+ void sgx_thread_wait_untrusted_event_ocall(){};
++void sgx_thread_timedwait_untrusted_event_ocall(){};
++void sgx_thread_settimedwait_untrusted_events_ocall(){};
+ 
+diff --git a/sdk/tlibthread/sethread_cond.cpp b/sdk/tlibthread/sethread_cond.cpp
+index 2cfe38b..b31b642 100644
+--- a/sdk/tlibthread/sethread_cond.cpp
++++ b/sdk/tlibthread/sethread_cond.cpp
+@@ -106,6 +106,81 @@ int sgx_thread_cond_wait(sgx_thread_cond_t *cond, sgx_thread_mutex_t *mutex)
+     return 0;
+ }
+ 
++int sgx_thread_cond_timedwait(sgx_thread_cond_t *cond, sgx_thread_mutex_t *mutex, const seng_timespec_t *timeout)
++{
++    CHECK_PARAMETER(cond);
++    CHECK_PARAMETER(mutex);
++    CHECK_PARAMETER(timeout);
++
++    // TODO: no matching error type available
++    if (timeout == NULL) return EINVAL;
++
++    sgx_thread_t self = (sgx_thread_t)get_thread_data();
++
++    SPIN_LOCK(&cond->m_lock);
++    QUEUE_INSERT_TAIL(&cond->m_queue, self);
++
++    sgx_thread_t waiter = SGX_THREAD_T_NULL;
++    int ret = sgx_thread_mutex_unlock_lazy(mutex, &waiter);
++    if (ret != 0) {
++        SPIN_UNLOCK(&cond->m_lock);
++        return ret;
++    }
++
++    long int tv_sec = timeout->tv_sec;
++    long tv_nsec = timeout->tv_nsec;
++    while (1) {
++        sgx_thread_t tmp = SGX_THREAD_T_NULL;
++
++        SPIN_UNLOCK(&cond->m_lock);
++        /* OPT: if there is a thread waiting on the mutex, wake it in a single OCALL. */
++        if (waiter == SGX_THREAD_T_NULL) {
++            sgx_thread_timedwait_untrusted_event_ocall(&ret, TD2TCS(self), tv_sec, tv_nsec);
++        } else {
++            sgx_thread_settimedwait_untrusted_events_ocall(&ret, TD2TCS(waiter), TD2TCS(self), tv_sec, tv_nsec);
++            waiter = SGX_THREAD_T_NULL;
++        }
++
++        SPIN_LOCK(&cond->m_lock);
++
++        /* timeout has occurred */
++        if (ret == (int)SE_ERROR_MUTEX_TIMEOUT_EVENT) {
++            sgx_thread_t prev = SGX_THREAD_T_NULL;
++            /* remove from waiter list */
++            for (tmp = QUEUE_FIRST(&cond->m_queue);
++                    tmp != SGX_THREAD_T_NULL;
++                    tmp = QUEUE_NEXT(tmp)) {
++                /* found thread in waiter list */
++                if (tmp == self) {
++                    if (tmp == QUEUE_FIRST(&cond->m_queue))
++                        QUEUE_REMOVE_HEAD(&cond->m_queue);
++                    else
++                        if (( ((pTD)prev)->m_next = ((pTD)tmp)->m_next )
++                                == SGX_THREAD_T_NULL)
++                            cond->m_queue.m_last = prev;
++                    break;
++                }
++                prev = tmp;
++            }
++            ret = ETIMEDOUT;
++            break;
++        }
++
++        QUEUE_FOREACH(tmp, &cond->m_queue) {
++            if (tmp == self) break; /* stop searching and re-wait outside */
++        }
++        if (tmp == SGX_THREAD_T_NULL) {
++            ret = 0;
++            break;     /* current thread isn't in the queue */
++        }
++    }
++
++    SPIN_UNLOCK(&cond->m_lock);
++    sgx_thread_mutex_lock(mutex);
++
++    return ret;
++}
++
+ int sgx_thread_cond_signal(sgx_thread_cond_t *cond)
+ {
+     int err = 0;
+diff --git a/sdk/tlibthread/sethread_internal.h b/sdk/tlibthread/sethread_internal.h
+index 5f242a2..a9b7398 100644
+--- a/sdk/tlibthread/sethread_internal.h
++++ b/sdk/tlibthread/sethread_internal.h
+@@ -39,6 +39,8 @@
+ #include "internal/thread_data.h"
+ #include "trts_internal.h"
+ 
++#include "internal/se_error_internal.h"
++
+ 
+ typedef struct _thread_data_t *pTD;
+ 
+@@ -93,4 +95,7 @@ extern "C" sgx_status_t sgx_thread_set_untrusted_event_ocall(int* retval, const
+ extern "C" sgx_status_t sgx_thread_set_multiple_untrusted_events_ocall(int* retval, const void** waiters, size_t total);
+ extern "C" sgx_status_t sgx_thread_setwait_untrusted_events_ocall(int* retval, const void *waiter, const void *self);
+ 
++extern "C" sgx_status_t sgx_thread_timedwait_untrusted_event_ocall(int* retval, const void *self, long int tv_sec, long tv_nsec);
++extern "C" sgx_status_t sgx_thread_settimedwait_untrusted_events_ocall(int* retval, const void *waiter, const void *self, long int tv_sec, long tv_nsec);
++
+ extern "C" int sgx_thread_mutex_unlock_lazy(sgx_thread_mutex_t *mutex, sgx_thread_t *pwaiter);

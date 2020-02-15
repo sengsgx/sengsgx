@@ -1,0 +1,19 @@
+enclave {
+    from "seng.edl" import *;
+
+    untrusted {
+        void switchless_demo(int num) transition_using_threads;
+        int empty_ocall(void);
+        int empty_switchless_ocall(void) transition_using_threads;
+    };
+
+    enum boolean { EFALSE = 0, ETRUE = 1 };
+
+    trusted {
+        public void t_sgxssl_call_apis(void);
+        public void second_thread_demo_call(void);
+        public int bench_empty_ecall(void);
+        public int bench_switchless_empty_ecall(void) transition_using_threads;
+        public void bench_ocall(boolean switchless);
+    };
+};

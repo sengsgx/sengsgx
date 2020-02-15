@@ -1,0 +1,812 @@
+diff --git a/src/api/api_msg.c b/src/api/api_msg.c
+index 39531024..9013b11c 100644
+--- a/src/api/api_msg.c
++++ b/src/api/api_msg.c
+@@ -1372,7 +1372,9 @@ lwip_netconn_do_connect(void *m)
+         /* Prevent connect while doing any other action. */
+         if (msg->conn->state == NETCONN_CONNECT) {
+           err = ERR_ALREADY;
+-        } else if (msg->conn->state != NETCONN_NONE) {
++        /* patch from GenodeOS project against assert on non-blocking connect */
++        } else if ((msg->conn->state != NETCONN_NONE) ||
++                   ((msg->conn->pcb.tcp->state == ESTABLISHED) && netconn_is_nonblocking(msg->conn))) {
+           err = ERR_ISCONN;
+         } else {
+           setup_tcp(msg->conn);
+diff --git a/src/api/netdb.c b/src/api/netdb.c
+index 87714259..8d4a70f5 100644
+--- a/src/api/netdb.c
++++ b/src/api/netdb.c
+@@ -306,7 +306,8 @@ lwip_getaddrinfo(const char *nodename, const char *servname,
+     /* service name specified: convert to port number
+      * @todo?: currently, only ASCII integers (port numbers) are supported (AI_NUMERICSERV)! */
+     port_nr = atoi(servname);
+-    if ((port_nr <= 0) || (port_nr > 0xffff)) {
++    /* Change: allow "0" */
++    if ((port_nr < 0) || (port_nr > 0xffff)) {
+       return EAI_SERVICE;
+     }
+   }
+@@ -374,7 +375,7 @@ lwip_getaddrinfo(const char *nodename, const char *servname,
+     /* set up sockaddr */
+     inet6_addr_from_ip6addr(&sa6->sin6_addr, ip_2_ip6(&addr));
+     sa6->sin6_family = AF_INET6;
+-    sa6->sin6_len = sizeof(struct sockaddr_in6);
++    /*sa6->sin6_len = sizeof(struct sockaddr_in6);*/
+     sa6->sin6_port = lwip_htons((u16_t)port_nr);
+     sa6->sin6_scope_id = ip6_addr_zone(ip_2_ip6(&addr));
+     ai->ai_family = AF_INET6;
+@@ -385,7 +386,7 @@ lwip_getaddrinfo(const char *nodename, const char *servname,
+     /* set up sockaddr */
+     inet_addr_from_ip4addr(&sa4->sin_addr, ip_2_ip4(&addr));
+     sa4->sin_family = AF_INET;
+-    sa4->sin_len = sizeof(struct sockaddr_in);
++    /*sa4->sin_len = sizeof(struct sockaddr_in);*/
+     sa4->sin_port = lwip_htons((u16_t)port_nr);
+     ai->ai_family = AF_INET;
+ #endif /* LWIP_IPV4 */
+diff --git a/src/api/sockets.c b/src/api/sockets.c
+index cb7df914..9fc4e472 100644
+--- a/src/api/sockets.c
++++ b/src/api/sockets.c
+@@ -87,7 +87,6 @@
+ 
+ #if LWIP_IPV4
+ #define IP4ADDR_PORT_TO_SOCKADDR(sin, ipaddr, port) do { \
+-      (sin)->sin_len = sizeof(struct sockaddr_in); \
+       (sin)->sin_family = AF_INET; \
+       (sin)->sin_port = lwip_htons((port)); \
+       inet_addr_from_ip4addr(&(sin)->sin_addr, ipaddr); \
+@@ -99,7 +98,6 @@
+ 
+ #if LWIP_IPV6
+ #define IP6ADDR_PORT_TO_SOCKADDR(sin6, ipaddr, port) do { \
+-      (sin6)->sin6_len = sizeof(struct sockaddr_in6); \
+       (sin6)->sin6_family = AF_INET6; \
+       (sin6)->sin6_port = lwip_htons((port)); \
+       (sin6)->sin6_flowinfo = 0; \
+@@ -156,7 +154,11 @@ static void sockaddr_to_ipaddr_port(const struct sockaddr *sockaddr, ip_addr_t *
+                                                     IS_SOCK_ADDR_TYPE_VALID(name))
+ #define SOCK_ADDR_TYPE_MATCH_OR_UNSPEC(name, sock) (((name)->sa_family == AF_UNSPEC) || \
+                                                     SOCK_ADDR_TYPE_MATCH(name, sock))
++
++/*
+ #define IS_SOCK_ADDR_ALIGNED(name)      ((((mem_ptr_t)(name)) % 4) == 0)
++*/
++#define IS_SOCK_ADDR_ALIGNED(name)      (1)
+ 
+ 
+ #define LWIP_SOCKOPT_CHECK_OPTLEN(sock, optlen, opttype) do { if ((optlen) < sizeof(opttype)) { done_socket(sock); return EINVAL; }}while(0)
+@@ -696,9 +698,22 @@ lwip_accept(int s, struct sockaddr *addr, socklen_t *addrlen)
+     }
+ 
+     IPADDR_PORT_TO_SOCKADDR(&tempaddr, &naddr, port);
+-    if (*addrlen > tempaddr.sa.sa_len) {
++/*
++      if (*addrlen > tempaddr.sa.sa_len) {
+       *addrlen = tempaddr.sa.sa_len;
+     }
++ */
++
++#if LWIP_IPV4
++    if (tempaddr.sa.sa_family == AF_INET) {
++        *addrlen = sizeof(struct sockaddr_in);
++    }
++#endif
++#if LWIP_IPV6
++    if (tempaddr.sa.sa_family == AF_INET6) {
++        *addrlen = sizeof(struct sockaddr_in6);
++    }
++#endif
+     MEMCPY(addr, &tempaddr, *addrlen);
+ 
+     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_accept(%d) returning new sock=%d addr=", s, newsock));
+@@ -1041,11 +1056,33 @@ lwip_sock_make_addr(struct netconn *conn, ip_addr_t *fromaddr, u16_t port,
+ #endif /* LWIP_IPV4 && LWIP_IPV6 */
+ 
+   IPADDR_PORT_TO_SOCKADDR(&saddr, fromaddr, port);
++    /*
+   if (*fromlen < saddr.sa.sa_len) {
+     truncated = 1;
+   } else if (*fromlen > saddr.sa.sa_len) {
+     *fromlen = saddr.sa.sa_len;
+   }
++     */
++
++  sa_family_t tfam = saddr.sa.sa_family;
++  ssize_t tlen = *fromlen;
++#if LWIP_IPV4
++  if (tfam == AF_INET) {
++      tlen = sizeof(struct sockaddr_in);
++  }
++#endif
++#if LWIP_IPV6
++  if (tfam == AF_INET6) {
++      tlen = sizeof(struct sockaddr_in6);
++  }
++#endif
++
++  if (*fromlen < tlen) {
++      truncated = 1;
++  } else if (*fromlen > tlen) {
++      *fromlen = tlen;
++  }
++
+   MEMCPY(from, &saddr, *fromlen);
+   return truncated;
+ }
+@@ -1091,7 +1128,7 @@ lwip_recvfrom_udp_raw(struct lwip_sock *sock, int flags, struct msghdr *msg, u16
+   u8_t apiflags;
+   err_t err;
+   u16_t buflen, copylen, copied;
+-  int i;
++  size_t i;
+ 
+   LWIP_UNUSED_ARG(dbg_s);
+   LWIP_ERROR("lwip_recvfrom_udp_raw: invalid arguments", (msg->msg_iov != NULL) || (msg->msg_iovlen <= 0), return ERR_ARG;);
+@@ -1281,7 +1318,7 @@ ssize_t
+ lwip_recvmsg(int s, struct msghdr *message, int flags)
+ {
+   struct lwip_sock *sock;
+-  int i;
++  size_t i;
+   ssize_t buflen;
+ 
+   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvmsg(%d, message=%p, flags=0x%x)\n", s, (void *)message, flags));
+@@ -1468,7 +1505,7 @@ lwip_sendmsg(int s, const struct msghdr *msg, int flags)
+ #if LWIP_UDP || LWIP_RAW
+   {
+     struct netbuf chain_buf;
+-    int i;
++    size_t i;
+     ssize_t size = 0;
+ 
+     LWIP_UNUSED_ARG(flags);
+@@ -2733,9 +2770,28 @@ lwip_getaddrname(int s, struct sockaddr *name, socklen_t *namelen, u8_t local)
+   ip_addr_debug_print_val(SOCKETS_DEBUG, naddr);
+   LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%"U16_F")\n", port));
+ 
++    /*
+   if (*namelen > saddr.sa.sa_len) {
+     *namelen = saddr.sa.sa_len;
+   }
++     */
++
++  ssize_t tlen = *namelen;
++#if LWIP_IPV4
++  if (saddr.sa.sa_family == AF_INET) {
++      tlen = sizeof(struct sockaddr_in);
++  }
++#endif
++#if LWIP_IPV6
++  if (saddr.sa.sa_family == AF_INET6) {
++      tlen = sizeof(struct sockaddr_in6);
++  }
++#endif
++
++  if (*namelen > tlen) {
++      *namelen = tlen;
++  }
++
+   MEMCPY(name, &saddr, *namelen);
+ 
+   sock_set_errno(sock, 0);
+@@ -3425,8 +3481,8 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
+           LWIP_SOCKOPT_CHECK_OPTLEN_CONN(sock, optlen, struct ifreq);
+ 
+           iface = (const struct ifreq *)optval;
+-          if (iface->ifr_name[0] != 0) {
+-            n = netif_find(iface->ifr_name);
++          if (iface->ifr_ifrn.ifrn_name[0] != 0) {
++            n = netif_find(iface->ifr_ifrn.ifrn_name);
+             if (n == NULL) {
+               done_socket(sock);
+               return ENODEV;
+@@ -3742,12 +3798,24 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
+ int
+ lwip_ioctl(int s, long cmd, void *argp)
+ {
+-  struct lwip_sock *sock = get_socket(s);
++  struct lwip_sock *sock;
+   u8_t val;
+ #if LWIP_SO_RCVBUF
+   int recv_avail;
+ #endif /* LWIP_SO_RCVBUF */
+ 
++  /*
++  printf("Entered lwip_ioctl()\n");
++  fflush(stdout);
++*/
++
++  sock = get_socket(s);
++
++  /*
++  printf("lwip_ioctl(%d, %ld, %p)\n", s, cmd, argp);
++  fflush(stdout);
++*/
++
+   if (!sock) {
+     return -1;
+   }
+diff --git a/src/include/lwip/ip.h b/src/include/lwip/ip.h
+index 653c3b2f..2b78e0eb 100644
+--- a/src/include/lwip/ip.h
++++ b/src/include/lwip/ip.h
+@@ -96,9 +96,9 @@ struct ip_pcb {
+ /*
+  * Option flags per-socket. These are the same like SO_XXX in sockets.h
+  */
+-#define SOF_REUSEADDR     0x04U  /* allow local address reuse */
+-#define SOF_KEEPALIVE     0x08U  /* keep connections alive */
+-#define SOF_BROADCAST     0x20U  /* permit to send and to receive broadcast messages (see IP_SOF_BROADCAST option) */
++#define SOF_REUSEADDR     2  /* allow local address reuse */
++#define SOF_KEEPALIVE     9  /* keep connections alive */
++#define SOF_BROADCAST     6  /* permit to send and to receive broadcast messages (see IP_SOF_BROADCAST option) */
+ 
+ /* These flags are inherited (e.g. from a listen-pcb to a connection-pcb): */
+ #define SOF_INHERITED   (SOF_REUSEADDR|SOF_KEEPALIVE)
+diff --git a/src/include/lwip/netdb.h b/src/include/lwip/netdb.h
+index d3d15dfa..8af5e3a7 100644
+--- a/src/include/lwip/netdb.h
++++ b/src/include/lwip/netdb.h
+@@ -65,16 +65,16 @@ extern "C" {
+ 
+ #if LWIP_DNS_API_DEFINE_ERRORS
+ /** Errors used by the DNS API functions, h_errno can be one of them */
+-#define EAI_NONAME      200
+-#define EAI_SERVICE     201
+-#define EAI_FAIL        202
+-#define EAI_MEMORY      203
+-#define EAI_FAMILY      204
+-
+-#define HOST_NOT_FOUND  210
+-#define NO_DATA         211
+-#define NO_RECOVERY     212
+-#define TRY_AGAIN       213
++#define EAI_NONAME      -2
++#define EAI_SERVICE     -8
++#define EAI_FAIL        -4
++#define EAI_MEMORY      -10
++#define EAI_FAMILY      -6
++
++#define HOST_NOT_FOUND  1
++#define NO_DATA         4
++#define NO_RECOVERY     3
++#define TRY_AGAIN       2
+ #endif /* LWIP_DNS_API_DEFINE_ERRORS */
+ 
+ #if LWIP_DNS_API_DEFINE_FLAGS
+@@ -82,10 +82,10 @@ extern "C" {
+ #define AI_PASSIVE      0x01
+ #define AI_CANONNAME    0x02
+ #define AI_NUMERICHOST  0x04
+-#define AI_NUMERICSERV  0x08
+-#define AI_V4MAPPED     0x10
+-#define AI_ALL          0x20
+-#define AI_ADDRCONFIG   0x40
++#define AI_NUMERICSERV  0x0400
++#define AI_V4MAPPED     0x08
++#define AI_ALL          0x10
++#define AI_ADDRCONFIG   0x20
+ #endif /* LWIP_DNS_API_DEFINE_FLAGS */
+ 
+ #if LWIP_DNS_API_DECLARE_STRUCTS
+diff --git a/src/include/lwip/sockets.h b/src/include/lwip/sockets.h
+index d70d36c4..08dd7b45 100644
+--- a/src/include/lwip/sockets.h
++++ b/src/include/lwip/sockets.h
+@@ -58,7 +58,7 @@ extern "C" {
+ /* If your port already typedef's sa_family_t, define SA_FAMILY_T_DEFINED
+    to prevent this code from redefining it. */
+ #if !defined(sa_family_t) && !defined(SA_FAMILY_T_DEFINED)
+-typedef u8_t sa_family_t;
++typedef unsigned short int sa_family_t; /* made it POSIX compliant */
+ #endif
+ /* If your port already typedef's in_port_t, define IN_PORT_T_DEFINED
+    to prevent this code from redefining it. */
+@@ -68,35 +68,38 @@ typedef u16_t in_port_t;
+ 
+ #if LWIP_IPV4
+ /* members are in network byte order */
++/* made it POSIX compliant */
+ struct sockaddr_in {
+-  u8_t            sin_len;
+   sa_family_t     sin_family;
+   in_port_t       sin_port;
+   struct in_addr  sin_addr;
+ #define SIN_ZERO_LEN 8
+-  char            sin_zero[SIN_ZERO_LEN];
++  /* Pad to size of `struct sockaddr'. */
++  char            sin_zero[ SIN_ZERO_LEN ];
+ };
+ #endif /* LWIP_IPV4 */
+ 
+ #if LWIP_IPV6
++/* made it POSIX compliant */
+ struct sockaddr_in6 {
+-  u8_t            sin6_len;      /* length of this structure    */
+   sa_family_t     sin6_family;   /* AF_INET6                    */
+   in_port_t       sin6_port;     /* Transport layer port #      */
+   u32_t           sin6_flowinfo; /* IPv6 flow information       */
++  /* TODO: struct in6_addr differs from POSIX */
+   struct in6_addr sin6_addr;     /* IPv6 address                */
+   u32_t           sin6_scope_id; /* Set of interfaces for scope */
+ };
+ #endif /* LWIP_IPV6 */
+ 
++/* made it POSIX compliant */
+ struct sockaddr {
+-  u8_t        sa_len;
+   sa_family_t sa_family;
+   char        sa_data[14];
+ };
+ 
++    /* made it POSIX compliant */
++    /* TODO */
+ struct sockaddr_storage {
+-  u8_t        s2_len;
+   sa_family_t ss_family;
+   char        s2_data1[2];
+   u32_t       s2_data2[3];
+@@ -112,8 +115,8 @@ typedef u32_t socklen_t;
+ #endif
+ 
+ #if !defined IOV_MAX
+-#define IOV_MAX 0xFFFF
+-#elif IOV_MAX > 0xFFFF
++#define IOV_MAX 1024
++#elif IOV_MAX > 1024
+ #error "IOV_MAX larger than supported by LwIP"
+ #endif /* IOV_MAX */
+ 
+@@ -128,19 +131,19 @@ struct msghdr {
+   void         *msg_name;
+   socklen_t     msg_namelen;
+   struct iovec *msg_iov;
+-  int           msg_iovlen;
++  size_t           msg_iovlen; /*int*/
+   void         *msg_control;
+-  socklen_t     msg_controllen;
++  size_t     msg_controllen; /*socklen_t*/
+   int           msg_flags;
+ };
+ 
+ /* struct msghdr->msg_flags bit field values */
+-#define MSG_TRUNC   0x04
++#define MSG_TRUNC   0x20
+ #define MSG_CTRUNC  0x08
+ 
+ /* RFC 3542, Section 20: Ancillary Data */
+ struct cmsghdr {
+-  socklen_t  cmsg_len;   /* number of bytes, including header */
++  size_t  cmsg_len;   /* number of bytes, including header */
+   int        cmsg_level; /* originating protocol */
+   int        cmsg_type;  /* protocol-specific type */
+ };
+@@ -180,9 +183,39 @@ will need to increase long long */
+ 
+ /* Set socket options argument */
+ #define IFNAMSIZ NETIF_NAMESIZE
++struct ifmap                                                                           
++  {                                                                                
++    unsigned long int mem_start;                                                   
++    unsigned long int mem_end;                                                     
++    unsigned short int base_addr;                                                  
++    unsigned char irq;                                                             
++    unsigned char dma;                                                             
++    unsigned char port;                                                            
++    /* 3 bytes spare */                                                            
++  }; 
++
+ struct ifreq {
+-  char ifr_name[IFNAMSIZ]; /* Interface name */
++        union                                                                      
++        {                                                                          
++                char    ifrn_name[IFNAMSIZ];            /* if name, e.g. "en0" */
++        } ifr_ifrn;                                                                
++                                                                                   
++        union {                                                                    
++                struct  sockaddr ifru_addr;                                        
++                struct  sockaddr ifru_dstaddr;                                     
++                struct  sockaddr ifru_broadaddr;                                   
++                struct  sockaddr ifru_netmask;                                     
++                struct  sockaddr ifru_hwaddr;                                      
++                short   ifru_flags;                                                
++                int     ifru_ivalue;                                               
++                int     ifru_mtu;                                                  
++                struct  ifmap ifru_map;                                            
++                char    ifru_slave[IFNAMSIZ];   /* Just fits the size */           
++                char    ifru_newname[IFNAMSIZ];                                    
++                char *  ifru_data; 
++        } ifr_ifru;    
+ };
++/* TODO: IFNAMSIZ 6; but should be 16' but not sure if it would breake netif namesiz */
+ 
+ /* Socket protocol types (TCP/UDP/RAW) */
+ #define SOCK_STREAM     1
+@@ -192,33 +225,35 @@ struct ifreq {
+ /*
+  * Option flags per-socket. These must match the SOF_ flags in ip.h (checked in init.c)
+  */
+-#define SO_REUSEADDR   0x0004 /* Allow local address reuse */
+-#define SO_KEEPALIVE   0x0008 /* keep connections alive */
+-#define SO_BROADCAST   0x0020 /* permit to send and to receive broadcast messages (see IP_SOF_BROADCAST option) */
++#define SO_REUSEADDR   2 /* Allow local address reuse */
++#define SO_KEEPALIVE   9 /* keep connections alive */
++#define SO_BROADCAST   6 /* permit to send and to receive broadcast messages (see IP_SOF_BROADCAST option) */
+ 
+ 
+ /*
+  * Additional options, not kept in so_options.
+  */
+-#define SO_DEBUG        0x0001 /* Unimplemented: turn on debugging info recording */
+-#define SO_ACCEPTCONN   0x0002 /* socket has had listen() */
+-#define SO_DONTROUTE    0x0010 /* Unimplemented: just use interface addresses */
+-#define SO_USELOOPBACK  0x0040 /* Unimplemented: bypass hardware when possible */
+-#define SO_LINGER       0x0080 /* linger on close if data present */
++#define SO_DEBUG        1 /* Unimplemented: turn on debugging info recording */
++#define SO_ACCEPTCONN   30 /* socket has had listen() */
++#define SO_DONTROUTE    5 /* Unimplemented: just use interface addresses */
++/* POSIX doesn't know it */
++/*#define SO_USELOOPBACK  0x0040*/ /* Unimplemented: bypass hardware when possible */
++#define SO_LINGER       13 /* linger on close if data present */
+ #define SO_DONTLINGER   ((int)(~SO_LINGER))
+-#define SO_OOBINLINE    0x0100 /* Unimplemented: leave received OOB data in line */
+-#define SO_REUSEPORT    0x0200 /* Unimplemented: allow local address & port reuse */
+-#define SO_SNDBUF       0x1001 /* Unimplemented: send buffer size */
+-#define SO_RCVBUF       0x1002 /* receive buffer size */
+-#define SO_SNDLOWAT     0x1003 /* Unimplemented: send low-water mark */
+-#define SO_RCVLOWAT     0x1004 /* Unimplemented: receive low-water mark */
+-#define SO_SNDTIMEO     0x1005 /* send timeout */
+-#define SO_RCVTIMEO     0x1006 /* receive timeout */
+-#define SO_ERROR        0x1007 /* get error status and clear */
+-#define SO_TYPE         0x1008 /* get socket type */
+-#define SO_CONTIMEO     0x1009 /* Unimplemented: connect timeout */
+-#define SO_NO_CHECK     0x100a /* don't create UDP checksum */
+-#define SO_BINDTODEVICE 0x100b /* bind to device */
++#define SO_OOBINLINE    10 /* Unimplemented: leave received OOB data in line */
++#define SO_REUSEPORT    15 /* Unimplemented: allow local address & port reuse */
++#define SO_SNDBUF       7 /* Unimplemented: send buffer size */
++#define SO_RCVBUF       8 /* receive buffer size */
++#define SO_SNDLOWAT     19 /* Unimplemented: send low-water mark */
++#define SO_RCVLOWAT     18 /* Unimplemented: receive low-water mark */
++#define SO_SNDTIMEO     21 /* send timeout */
++#define SO_RCVTIMEO     20 /* receive timeout */
++#define SO_ERROR        4 /* get error status and clear */
++#define SO_TYPE         3 /* get socket type */
++/* POSIX doesn't know it */
++/*#define SO_CONTIMEO     0x1009*/ /* Unimplemented: connect timeout */
++#define SO_NO_CHECK     11 /* don't create UDP checksum */
++#define SO_BINDTODEVICE 25 /* bind to device */
+ 
+ /*
+  * Structure used for manipulating linger option.
+@@ -231,7 +266,7 @@ struct linger {
+ /*
+  * Level number for (get/set)sockopt() to apply to socket itself.
+  */
+-#define  SOL_SOCKET  0xfff    /* options for socket level */
++#define  SOL_SOCKET  1    /* options for socket level */
+ 
+ 
+ #define AF_UNSPEC       0
+@@ -257,12 +292,12 @@ struct linger {
+ #define IPPROTO_RAW     255
+ 
+ /* Flags we can use with send and recv. */
+-#define MSG_PEEK       0x01    /* Peeks at an incoming message */
+-#define MSG_WAITALL    0x02    /* Unimplemented: Requests that the function block until the full amount of data requested can be returned */
+-#define MSG_OOB        0x04    /* Unimplemented: Requests out-of-band data. The significance and semantics of out-of-band data are protocol-specific */
+-#define MSG_DONTWAIT   0x08    /* Nonblocking i/o for this operation only */
+-#define MSG_MORE       0x10    /* Sender will send more */
+-#define MSG_NOSIGNAL   0x20    /* Uninmplemented: Requests not to send the SIGPIPE signal if an attempt to send is made on a stream-oriented socket that is no longer connected. */
++#define MSG_PEEK       0x02    /* Peeks at an incoming message */
++#define MSG_WAITALL    0x100    /* Unimplemented: Requests that the function block until the full amount of data requested can be returned */
++#define MSG_OOB        0x01    /* Unimplemented: Requests out-of-band data. The significance and semantics of out-of-band data are protocol-specific */
++#define MSG_DONTWAIT   0x40    /* Nonblocking i/o for this operation only */
++#define MSG_MORE       0x8000    /* Sender will send more */
++#define MSG_NOSIGNAL   0x4000    /* Uninmplemented: Requests not to send the SIGPIPE signal if an attempt to send is made on a stream-oriented socket that is no longer connected. */
+ 
+ 
+ /*
+@@ -277,10 +312,12 @@ struct linger {
+  * Options for level IPPROTO_TCP
+  */
+ #define TCP_NODELAY    0x01    /* don't delay send to coalesce packets */
+-#define TCP_KEEPALIVE  0x02    /* send KEEPALIVE probes when idle for pcb->keep_idle milliseconds */
+-#define TCP_KEEPIDLE   0x03    /* set pcb->keep_idle  - Same as TCP_KEEPALIVE, but use seconds for get/setsockopt */
+-#define TCP_KEEPINTVL  0x04    /* set pcb->keep_intvl - Use seconds for get/setsockopt */
+-#define TCP_KEEPCNT    0x05    /* set pcb->keep_cnt   - Use number of probes sent for get/setsockopt */
++/* POSIX seems to not know it?!; Linux mentions builtin support?! */
++/* TODO: should we always set it?! */
++#define TCP_KEEPALIVE  55    /* send KEEPALIVE probes when idle for pcb->keep_idle milliseconds */
++#define TCP_KEEPIDLE   0x04    /* set pcb->keep_idle  - Same as TCP_KEEPALIVE, but use seconds for get/setsockopt */
++#define TCP_KEEPINTVL  0x05    /* set pcb->keep_intvl - Use seconds for get/setsockopt */
++#define TCP_KEEPCNT    0x06   /* set pcb->keep_cnt   - Use number of probes sent for get/setsockopt */
+ #endif /* LWIP_TCP */
+ 
+ #if LWIP_IPV6
+@@ -288,13 +325,14 @@ struct linger {
+  * Options for level IPPROTO_IPV6
+  */
+ #define IPV6_CHECKSUM       7  /* RFC3542: calculate and insert the ICMPv6 checksum for raw sockets. */
+-#define IPV6_V6ONLY         27 /* RFC3493: boolean control to restrict AF_INET6 sockets to IPv6 communications only. */
++#define IPV6_V6ONLY         26 /* RFC3493: boolean control to restrict AF_INET6 sockets to IPv6 communications only. */
+ #endif /* LWIP_IPV6 */
+ 
+ #if LWIP_UDP && LWIP_UDPLITE
+ /*
+  * Options for level IPPROTO_UDPLITE
+  */
++/* Linux/POSIX unknown? */
+ #define UDPLITE_SEND_CSCOV 0x01 /* sender checksum coverage */
+ #define UDPLITE_RECV_CSCOV 0x02 /* minimal receiver checksum coverage */
+ #endif /* LWIP_UDP && LWIP_UDPLITE*/
+@@ -304,17 +342,17 @@ struct linger {
+ /*
+  * Options and types for UDP multicast traffic handling
+  */
+-#define IP_MULTICAST_TTL   5
+-#define IP_MULTICAST_IF    6
+-#define IP_MULTICAST_LOOP  7
++#define IP_MULTICAST_TTL   33
++#define IP_MULTICAST_IF    32
++#define IP_MULTICAST_LOOP  34
+ #endif /* LWIP_MULTICAST_TX_OPTIONS */
+ 
+ #if LWIP_IGMP
+ /*
+  * Options and types related to multicast membership
+  */
+-#define IP_ADD_MEMBERSHIP  3
+-#define IP_DROP_MEMBERSHIP 4
++#define IP_ADD_MEMBERSHIP  35
++#define IP_DROP_MEMBERSHIP 36
+ 
+ typedef struct ip_mreq {
+     struct in_addr imr_multiaddr; /* IP multicast address of group */
+@@ -324,8 +362,9 @@ typedef struct ip_mreq {
+ 
+ #if LWIP_IPV4
+ struct in_pktinfo {
+-  unsigned int   ipi_ifindex;  /* Interface index */
+-  struct in_addr ipi_addr;     /* Destination (from header) address */
++  int   ipi_ifindex;  /* Interface index */
++  struct in_addr ipi_spec_dst; /* Routing destination address */
++  struct in_addr ipi_addr;     /* Header destination address */
+ };
+ #endif /* LWIP_IPV4 */
+ 
+@@ -333,14 +372,15 @@ struct in_pktinfo {
+ /*
+  * Options and types related to IPv6 multicast membership
+  */
+-#define IPV6_JOIN_GROUP      12
++#define IPV6_JOIN_GROUP      20
+ #define IPV6_ADD_MEMBERSHIP  IPV6_JOIN_GROUP
+-#define IPV6_LEAVE_GROUP     13
++#define IPV6_LEAVE_GROUP     21
+ #define IPV6_DROP_MEMBERSHIP IPV6_LEAVE_GROUP
+ 
+ typedef struct ipv6_mreq {
+   struct in6_addr ipv6mr_multiaddr; /*  IPv6 multicast addr */
+-  unsigned int    ipv6mr_interface; /*  interface index, or 0 */
++  /* TODO: ipv6mr_ifindex */
++  int    ipv6mr_interface; /*  interface index, or 0 */
+ } ipv6_mreq;
+ #endif /* LWIP_IPV6_MLD */
+ 
+@@ -402,26 +442,63 @@ typedef struct ipv6_mreq {
+ #if !defined(FIONREAD) || !defined(FIONBIO)
+ #define IOCPARM_MASK    0x7fU           /* parameters must be < 128 bytes */
+ #define IOC_VOID        0x20000000UL    /* no parameters */
+-#define IOC_OUT         0x40000000UL    /* copy out parameters */
+-#define IOC_IN          0x80000000UL    /* copy in parameters */
+-#define IOC_INOUT       (IOC_IN|IOC_OUT)
+-                                        /* 0x20000000 distinguishes new &
+-                                           old ioctl's */
+-#define _IO(x,y)        ((long)(IOC_VOID|((x)<<8)|(y)))
+ 
+-#define _IOR(x,y,t)     ((long)(IOC_OUT|((sizeof(t)&IOCPARM_MASK)<<16)|((x)<<8)|(y)))
++#define _IOC_NRBITS     8
++#define _IOC_TYPEBITS   8
++
++/*
++ * Let any architecture override either of the following before
++ * including this file.
++ */
++
++#ifndef _IOC_SIZEBITS
++# define _IOC_SIZEBITS  14
++#endif
++
++#ifndef _IOC_DIRBITS
++# define _IOC_DIRBITS   2
++#endif
++
++#define _IOC_NRMASK     ((1 << _IOC_NRBITS)-1)
++#define _IOC_TYPEMASK   ((1 << _IOC_TYPEBITS)-1)
++#define _IOC_SIZEMASK   ((1 << _IOC_SIZEBITS)-1)
++#define _IOC_DIRMASK    ((1 << _IOC_DIRBITS)-1)
++
++#define _IOC_NRSHIFT    0
++#define _IOC_TYPESHIFT  (_IOC_NRSHIFT+_IOC_NRBITS)
++#define _IOC_SIZESHIFT  (_IOC_TYPESHIFT+_IOC_TYPEBITS)
++#define _IOC_DIRSHIFT   (_IOC_SIZESHIFT+_IOC_SIZEBITS)
++
++#ifndef _IOC_WRITE
++# define _IOC_WRITE     1U
++#endif
++
++#ifndef _IOC_READ
++# define _IOC_READ      2U
++#endif
++
++#define IOC_OUT         (_IOC_READ << _IOC_DIRSHIFT)
++#define IOC_IN          (_IOC_WRITE << _IOC_DIRSHIFT)
++#define IOC_INOUT       ((_IOC_WRITE|_IOC_READ) << _IOC_DIRSHIFT) 
++
++/* used to create numbers */                                                    
++#define _IO(type,nr)            _IOC(_IOC_NONE,(type),(nr),0)                   
++#define _IOR(type,nr,size)      _IOC(_IOC_READ,(type),(nr),(_IOC_TYPECHECK(size)))
++#define _IOW(type,nr,size)      _IOC(_IOC_WRITE,(type),(nr),(_IOC_TYPECHECK(size)))
+ 
+-#define _IOW(x,y,t)     ((long)(IOC_IN|((sizeof(t)&IOCPARM_MASK)<<16)|((x)<<8)|(y)))
+ #endif /* !defined(FIONREAD) || !defined(FIONBIO) */
+ 
+ #ifndef FIONREAD
+-#define FIONREAD    _IOR('f', 127, unsigned long) /* get # bytes to read */
++/*#define FIONREAD    _IOR('f', 127, unsigned long)*/
++#define FIONREAD	0x541b /* get # bytes to read */
+ #endif
+ #ifndef FIONBIO
+-#define FIONBIO     _IOW('f', 126, unsigned long) /* set/clear non-blocking i/o */
++/*#define FIONBIO     _IOW('f', 126, unsigned long)*/
++#define FIONBIO		0x5421 /* set/clear non-blocking i/o */
+ #endif
+ 
+ /* Socket I/O Controls: unimplemented */
++/* not in Linux/POISX */
+ #ifndef SIOCSHIWAT
+ #define SIOCSHIWAT  _IOW('s',  0, unsigned long)  /* set high watermark */
+ #define SIOCGHIWAT  _IOR('s',  1, unsigned long)  /* get high watermark */
+@@ -430,6 +507,7 @@ typedef struct ipv6_mreq {
+ #define SIOCATMARK  _IOR('s',  7, unsigned long)  /* at oob mark? */
+ #endif
+ 
++
+ /* commands for fnctl */
+ #ifndef F_GETFL
+ #define F_GETFL 3
+@@ -441,19 +519,19 @@ typedef struct ipv6_mreq {
+ /* File status flags and file access modes for fnctl,
+    these are bits in an int. */
+ #ifndef O_NONBLOCK
+-#define O_NONBLOCK  1 /* nonblocking I/O */
++#define O_NONBLOCK  04000 /* nonblocking I/O */
+ #endif
+ #ifndef O_NDELAY
+ #define O_NDELAY    O_NONBLOCK /* same as O_NONBLOCK, for compatibility */
+ #endif
+ #ifndef O_RDONLY
+-#define O_RDONLY    2
++#define O_RDONLY    00
+ #endif
+ #ifndef O_WRONLY
+-#define O_WRONLY    4
++#define O_WRONLY    01
+ #endif
+ #ifndef O_RDWR
+-#define O_RDWR      (O_RDONLY|O_WRONLY)
++#define O_RDWR      02
+ #endif
+ 
+ #ifndef SHUT_RD
+@@ -466,13 +544,66 @@ typedef struct ipv6_mreq {
+ #ifndef FD_SET
+ #undef  FD_SETSIZE
+ /* Make FD_SETSIZE match NUM_SOCKETS in socket.c */
+-#define FD_SETSIZE    MEMP_NUM_NETCONN
+-#define LWIP_SELECT_MAXNFDS (FD_SETSIZE + LWIP_SOCKET_OFFSET)
++#define FD_SETSIZE    1024 /*MEMP_NUM_NETCONN*/
++#define LWIP_SELECT_MAXNFDS FD_SETSIZE+1 /*(FD_SETSIZE + LWIP_SOCKET_OFFSET)*/
++
++#define __NFDBITS       (8 * (int) sizeof (__fd_mask))                             
++#define __FD_ELT(d)     ((d) / __NFDBITS)                                                                                    
++#define __FD_MASK(d)    ((__fd_mask) (1UL << ((d) % __NFDBITS)))
++
++# define __FDS_BITS(set) ((set)->__fds_bits)                                       
++
++//# if __WORDSIZE == 64
++#  define __FD_ZERO_STOS "stosq"                                                
++//# else                                                                             
++//#  define __FD_ZERO_STOS "stosl"                                                
++//# endif                                                                            
++                                                                                   
++# define __FD_ZERO(fdsp) \
++  do {                                                                        \
++    int __d0, __d1;                                                           \
++    __asm__ __volatile__ ("cld; rep; " __FD_ZERO_STOS                         \
++                          : "=c" (__d0), "=D" (__d1)                          \
++                          : "a" (0), "0" (sizeof (fd_set)                     \
++                                          / sizeof (__fd_mask)),              \
++                            "1" (&__FDS_BITS (fdsp)[0])                       \
++                          : "memory");                                        \
++  } while (0)
++
++#define	__FD_SETSIZE		FD_SETSIZE
++
++#define __FD_SET(d, set) \
++  ((void) (__FDS_BITS (set)[__FD_ELT (d)] |= __FD_MASK (d)))                       
++#define __FD_CLR(d, set) \
++  ((void) (__FDS_BITS (set)[__FD_ELT (d)] &= ~__FD_MASK (d)))                      
++#define __FD_ISSET(d, set) \
++  ((__FDS_BITS (set)[__FD_ELT (d)] & __FD_MASK (d)) != 0)
++
++#define FD_SET(fd, fdsetp)      __FD_SET (fd, fdsetp)                              
++#define FD_CLR(fd, fdsetp)      __FD_CLR (fd, fdsetp)                              
++#define FD_ISSET(fd, fdsetp)    __FD_ISSET (fd, fdsetp)                                                                      
++#define FD_ZERO(fdsetp)         __FD_ZERO (fdsetp) 
++
++typedef long int __fd_mask;
++typedef __fd_mask fd_mask;
++
++typedef struct                                                                     
++  {                                                                                
++    __fd_mask __fds_bits[__FD_SETSIZE / __NFDBITS];                                
++  } fd_set; 
++
++
++
++
++
++
++/*
+ #define FDSETSAFESET(n, code) do { \
+   if (((n) - LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n) - LWIP_SOCKET_OFFSET) >= 0)) { \
+   code; }} while(0)
+ #define FDSETSAFEGET(n, code) (((n) - LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n) - LWIP_SOCKET_OFFSET) >= 0) ?\
+   (code) : 0)
++
+ #define FD_SET(n, p)  FDSETSAFESET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] = (u8_t)((p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] |  (1 << (((n)-LWIP_SOCKET_OFFSET) & 7))))
+ #define FD_CLR(n, p)  FDSETSAFESET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] = (u8_t)((p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] & ~(1 << (((n)-LWIP_SOCKET_OFFSET) & 7))))
+ #define FD_ISSET(n,p) FDSETSAFEGET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] &   (1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
+@@ -483,6 +614,8 @@ typedef struct fd_set
+   unsigned char fd_bits [(FD_SETSIZE+7)/8];
+ } fd_set;
+ 
++*/
++
+ #elif FD_SETSIZE < (LWIP_SOCKET_OFFSET + MEMP_NUM_NETCONN)
+ #error "external FD_SETSIZE too small for number of sockets"
+ #else
+@@ -492,18 +625,18 @@ typedef struct fd_set
+ /* poll-related defines and types */
+ /* @todo: find a better way to guard the definition of these defines and types if already defined */
+ #if !defined(POLLIN) && !defined(POLLOUT)
+-#define POLLIN     0x1
+-#define POLLOUT    0x2
+-#define POLLERR    0x4
+-#define POLLNVAL   0x8
++#define POLLIN     0x001
++#define POLLOUT    0x004
++#define POLLERR    0x008
++#define POLLNVAL   0x020
+ /* Below values are unimplemented */
+-#define POLLRDNORM 0x10
+-#define POLLRDBAND 0x20
+-#define POLLPRI    0x40
+-#define POLLWRNORM 0x80
+-#define POLLWRBAND 0x100
+-#define POLLHUP    0x200
+-typedef unsigned int nfds_t;
++#define POLLRDNORM 0x040
++#define POLLRDBAND 0x080
++#define POLLPRI    0x002
++#define POLLWRNORM 0x100
++#define POLLWRBAND 0x200
++#define POLLHUP    0x010
++typedef unsigned long int nfds_t;
+ struct pollfd
+ {
+   int fd;

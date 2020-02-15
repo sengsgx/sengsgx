@@ -1,0 +1,30 @@
+/* seng */
+enclave {
+    // note: also included whole "sgx_tstdc.edl"
+    from "sgx_tsgxssl.edl" import *;
+
+    /*
+    from "sgx_tstdc.edl" import sgx_thread_wait_untrusted_event_ocall, sgx_thread_set_untrusted_event_ocall,
+                                sgx_thread_wait_untrusted_event_ocall, sgx_thread_setwait_untrusted_events_ocall,
+                                sgx_thread_set_untrusted_event_ocall, sgx_thread_set_multiple_untrusted_events_ocall;
+    */
+
+    from "seng_threads.edl" import *;
+
+    // we don't need the "dummy" ECALL
+    from "ra_tls.edl" import ocall_sgx_init_quote, ocall_remote_attestation;
+
+    untrusted {
+        void uprint([in, string] const char *str);
+
+        int setup_tunnel_socket(short port, [in, string] const char *dst_ip);
+
+        // receive loop called by netif thread
+        int tunnel_recv_loop(int fd) allow(input_tunnel_packet);
+    };
+
+    trusted {
+        // private
+        int input_tunnel_packet([in, size=len] const void *buf, size_t len);
+    };
+};

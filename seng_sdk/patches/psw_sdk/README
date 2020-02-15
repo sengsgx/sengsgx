@@ -1,0 +1,8 @@
+Adding support for "sgx_thread_cond_timedwait()"
+
+Based on Linux SGX SDK/PSW version 2.7.1 (tag).
+--> https://github.com/intel/linux-sgx/archive/sgx_2.7.1.zip
+
+int pthread_cond_timedwait(pthread_cond_t *restrict cond,
+    pthread_mutex_t *restrict mutex, const struct timespec *restrict abstime);
+

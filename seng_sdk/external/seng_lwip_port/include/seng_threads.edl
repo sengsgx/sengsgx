@@ -1,0 +1,13 @@
+enclave {
+    #include "seng_defs.hpp"
+
+    untrusted {
+        int create_new_seng_thread([in, string] const char *name);
+
+        // struct timespec *tp
+        int seng_clock_gettime(int clk_id, [out] struct seng_timespec *tp) propagate_errno transition_using_threads;
+    };
+    trusted {
+        public int start_new_seng_thread(void);
+    };
+};

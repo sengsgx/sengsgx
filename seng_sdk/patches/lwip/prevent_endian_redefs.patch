@@ -1,0 +1,23 @@
+diff --git a/src/include/lwip/arch.h b/src/include/lwip/arch.h
+index 58dae33..0fbbcee 100644
+--- a/src/include/lwip/arch.h
++++ b/src/include/lwip/arch.h
+@@ -37,6 +37,9 @@
+ #ifndef LWIP_HDR_ARCH_H
+ #define LWIP_HDR_ARCH_H
+ 
++/* moved before endian defines to prevent redefinitions */
++#include "arch/cc.h"
++
+ #ifndef LITTLE_ENDIAN
+ #define LITTLE_ENDIAN 1234
+ #endif
+@@ -45,8 +48,6 @@
+ #define BIG_ENDIAN 4321
+ #endif
+ 
+-#include "arch/cc.h"
+-
+ /**
+  * @defgroup compiler_abstraction Compiler/platform abstraction
+  * @ingroup sys_layer
