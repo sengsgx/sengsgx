@@ -1,0 +1,10 @@
+external/lwip
+external/*.tar
+external/*.zip
+external/sgxssl
+external/protobuf-c-1.2.1
+build/
+enclave/src/enclave_private.pem
+enclave/src/enclave_public.pem
+ported_external_apps/*.tar
+ported_external_apps/nginx-1.10.3
