@@ -24,7 +24,7 @@
 
 
 namespace seng {
-    PacketForwarder::PacketForwarder(std::shared_ptr<EnclaveIndex> &enc_idx_sp) :
+    PacketForwarder::PacketForwarder(std::shared_ptr<EnclaveIndexBase> &enc_idx_sp) :
     enclave_idx_sp(enc_idx_sp) {
         attach_to_tunnel_interface();
     }

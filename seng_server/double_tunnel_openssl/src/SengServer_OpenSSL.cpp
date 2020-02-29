@@ -9,6 +9,9 @@ extern "C" {
 #include <ra-challenger.h>
 }
 
+#include "EnclaveIndex_adapted.hpp"
+#include "EnclaveSqlite3Index.hpp"
+
 #include <iostream>
 #include <stdexcept>
 
@@ -18,15 +21,28 @@ extern "C" {
 
 #include <netinet/in.h>
 
+#include <experimental/optional>
+
+using namespace std::experimental;
+//#include <optional>
+
 //#define DEBUG_SENG_SRV
 
 
 namespace seng {
     SengServerOpenSSL::SengServerOpenSSL(std::string &ip_addr, in_port_t tunnel_port,
-                             volatile sig_atomic_t * stop_marker_ptr) :
+                             volatile sig_atomic_t * stop_marker_ptr,
+                             optional<std::string> opt_db_path) :
     stop_marker_ptr(stop_marker_ptr), check_period_in_ms(5000), is_shutting_down(false),
     tunnel_ip(ip_addr), tunnel_port(tunnel_port), ssl_engine("ECDHE-RSA-AES256-GCM-SHA384") {
-        enclave_idx_sp = std::make_shared<EnclaveIndex>();
+        
+        // use dummy, or Sqlite3-based enclave index
+        if (!opt_db_path) {
+            enclave_idx_sp = std::make_shared<EnclaveIndex>();
+        } else {
+            enclave_idx_sp = std::make_shared<EnclaveSqliteIndex>(opt_db_path->c_str());
+        }
+        
         ip_pckt_fwder_sp = std::make_shared<PacketForwarder>(enclave_idx_sp);
         // DTLS configuration (TODO: make paths configurable via CLI args)
         ssl_engine.configure("./srv_cert.pem", "./srv_key.pem");
@@ -388,9 +404,17 @@ namespace seng {
 #ifdef DEBUG_SENG_SRV
             std::cout << "Going to assign internal IP to new Enclave" << std::endl;
 #endif
-            //TODO: adapt such that IP is chosen from a subnetwork based on the SGX Report / Policy!
-            new_ip = enclave_idx_sp->get_free_internal_ip();
-            tte_up->assign_internal_ip(new_ip, enclave_idx_sp->netmask, enclave_idx_sp->gateway);
+            
+            optional<NetworkConfig> opt_nc;
+            opt_nc = enclave_idx_sp->get_enclave_ip(&tte_up->quote.report_body, tte_up->untrusted_tunnel_host_ip);
+            
+            if(!opt_nc) {
+                throw std::runtime_error("Failed to get IP for given enclave-hostIP pair");
+            }
+            new_ip = opt_nc->ip;
+            //new_ip = enclave_idx_sp->get_free_internal_ip();
+                                                    
+            tte_up->assign_internal_ip(new_ip, opt_nc->submask, opt_nc->gateway);
             
             // set non-blocking now!
             flags = fcntl(client_fd, F_GETFL, 0);

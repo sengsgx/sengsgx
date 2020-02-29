@@ -3,7 +3,7 @@
 
 #include "SSLEngine_OpenSSL.hpp"
 #include "PacketForwarder_adapted.hpp"
-#include "EnclaveIndex_adapted.hpp"
+#include "EncIdxBase.hpp"
 
 #include <memory>
 #include <vector>
@@ -20,7 +20,7 @@
 namespace seng {
     struct TunnelToEnclaveOpenSSL {
         TunnelToEnclaveOpenSSL(SSL *, std::shared_ptr<PacketForwarder> &,
-                        std::shared_ptr<EnclaveIndex> &, uv_udp_t *);
+                        std::shared_ptr<EnclaveIndexBase> &, uv_udp_t *);
         ~TunnelToEnclaveOpenSSL();
         
         union {
@@ -34,7 +34,7 @@ namespace seng {
         SSL *send_ssl;
         
         std::shared_ptr<PacketForwarder> ip_pckt_fwder_sp;
-        std::shared_ptr<EnclaveIndex> enclave_idx_sp;
+        std::shared_ptr<EnclaveIndexBase> enclave_idx_sp;
         
         // TODO: timeout handler/handling?
         

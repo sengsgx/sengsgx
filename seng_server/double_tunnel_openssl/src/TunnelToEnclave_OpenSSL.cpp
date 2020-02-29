@@ -31,7 +31,7 @@ extern "C" {
 
 namespace seng {
     TunnelToEnclaveOpenSSL::TunnelToEnclaveOpenSSL(SSL *ssl, std::shared_ptr<PacketForwarder> &pcktfwd,
-                                     std::shared_ptr<EnclaveIndex> &enc_idx, uv_udp_t *conn_socket)
+                                     std::shared_ptr<EnclaveIndexBase> &enc_idx, uv_udp_t *conn_socket)
     : ssl(ssl), send_ssl(nullptr), ip_pckt_fwder_sp(pcktfwd),
     enclave_idx_sp(enc_idx), quote({}), internal_enclave_ip(), closed(false) {
         assert(ssl != nullptr && conn_socket != nullptr);
@@ -244,8 +244,9 @@ namespace seng {
         std::cout << std::endl;
 //#endif
         
-        // TODO: Perform Whitelist Check here using the SGX Report !!
-        return true;
+        return enclave_idx_sp->is_whitelisted_app(body);
+        // TODO: perform checks on report
+        //return true;
     }
     
     void TunnelToEnclaveOpenSSL::start_event_listeners() {
@@ -277,8 +278,9 @@ namespace seng {
             return;
         }
         assert(!closed); // has fired multiple times in the past!
-        
-        int ret, ssl_err, len = 1420; // set to MTU of RaSSLTunnelNetif, bcs. that's the biggest potential payload
+       
+        // [over Ethernet, no jumbos] for TLS tunnel: <=1420B, for DTLS tunnel: <=1432B (with minimal headers)
+        int ret, ssl_err, len = 1432;
         auto buf_up = std::make_unique<unsigned char[]>(len);
         
         do {
@@ -340,7 +342,9 @@ namespace seng {
         }
         
 //#ifdef DEBUG_TTE
-        std::cout << "Closing TunnelToEnclave: " << inet_ntoa({internal_enclave_ip}) << std::endl;
+        std::cout << "Closing TunnelToEnclave";
+        if (internal_enclave_ip) std::cout << ": " << inet_ntoa({internal_enclave_ip});
+        std::cout << std::endl;
         std::cout.flush();
 //#endif
         
@@ -381,12 +385,15 @@ namespace seng {
             send_ssl = nullptr;
         }
         
-        enclave_idx_sp->mark_enclave_tunnel_closed(internal_enclave_ip);
+        // could add check if(internal_enclave_ip != 0) for case of early close
+        if (internal_enclave_ip) enclave_idx_sp->mark_enclave_tunnel_closed(internal_enclave_ip);
         
         closed = true;
         
         //#ifdef DEBUG_TTE
-        std::cout << "TunnelToEnclave: " << inet_ntoa({internal_enclave_ip}) << " now closed." << std::endl;
+        std::cout << "TunnelToEnclave";
+        if (internal_enclave_ip) std::cout << ": " << inet_ntoa({internal_enclave_ip});
+        std::cout << " now closed." << std::endl;
         std::cout.flush();
         //#endif
     }
@@ -453,7 +460,7 @@ namespace seng {
             
             if(retries == 0) {
                 close_tunnel_connection();
-                throw std::runtime_error("Failed to assign interal IP to Encave; shutting down the tunnel");
+                throw std::runtime_error("Failed to assign interal IP to Enclave; shutting down the tunnel");
             }
         }
 

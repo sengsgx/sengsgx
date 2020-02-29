@@ -62,13 +62,13 @@ namespace seng {
     
     class CliSockShadower {
     public:
-        CliSockShadower(std::shared_ptr<EnclaveIndex> &);
+        CliSockShadower(std::shared_ptr<EnclaveIndexBase> &);
         ~CliSockShadower();
  
         void run_cmd_server();
         void send_stop_signal();
     private:
-        std::shared_ptr<EnclaveIndex> enclave_idx_sp;
+        std::shared_ptr<EnclaveIndexBase> enclave_idx_sp;
         SSLEngine ssl_engine;
         
         int srv_socket;

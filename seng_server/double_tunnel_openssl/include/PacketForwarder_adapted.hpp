@@ -1,7 +1,7 @@
 #ifndef SENG_PACKETFORWARDER_HPP
 #define SENG_PACKETFORWARDER_HPP
 
-#include "EnclaveIndex_adapted.hpp"
+#include "EncIdxBase.hpp"
 
 #include <vector>
 #include <memory>
@@ -13,7 +13,7 @@
 
 namespace seng {
     struct PacketForwarder {
-        PacketForwarder(std::shared_ptr<EnclaveIndex> &);
+        PacketForwarder(std::shared_ptr<EnclaveIndexBase> &);
         ~PacketForwarder();
 
         ssize_t send_ip_packet(std::unique_ptr<unsigned char[]> ip_packet_up, int len);
@@ -24,7 +24,7 @@ namespace seng {
 
         uv_poll_t event_loop_fd_ctx;
         
-        std::shared_ptr<EnclaveIndex> enclave_idx_sp;
+        std::shared_ptr<EnclaveIndexBase> enclave_idx_sp;
         
         void attach_to_tunnel_interface();
         void detach_from_tunnel_interface();

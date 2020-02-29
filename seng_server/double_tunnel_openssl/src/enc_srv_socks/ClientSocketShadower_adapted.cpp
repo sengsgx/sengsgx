@@ -17,7 +17,7 @@
 
 
 namespace seng {
-    CliSockShadower::CliSockShadower(std::shared_ptr<EnclaveIndex> &enc_idx_sp) :
+    CliSockShadower::CliSockShadower(std::shared_ptr<EnclaveIndexBase> &enc_idx_sp) :
     enclave_idx_sp(enc_idx_sp), ssl_engine(SSLType::TLS), srv_socket(-1), atomic_stop_server(false) {
         ssl_engine.configure((const unsigned char *) mbedtls_test_cli_crt, mbedtls_test_cli_crt_len,
                              (const unsigned char*) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len,

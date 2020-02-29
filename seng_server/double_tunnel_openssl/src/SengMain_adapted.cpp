@@ -15,17 +15,21 @@
 #include <netinet/in.h> // struct in_addr, in_port_t
 
 
-const char *USAGE {"Usage: seng_ossl_tunnel_server <tunnel_port>\n"};
+const char *USAGE {"Usage: seng_ossl_tunnel_server [-d <sqlite.db>] <tunnel_port>\n"};
 
 int main(int argc, char *argv[]) {
     bool use_tls = false;
     int c;
-    while ((c = getopt (argc, argv, "h")) != -1)
+    char *db_path {nullptr};
+    while ((c = getopt (argc, argv, "hd:")) != -1)
         switch (c)
     {
         case 'h':
             std::cout << USAGE << std::endl;
             return EXIT_SUCCESS;
+        case 'd':
+            db_path = optarg;
+            continue;
         default:
             std::cout << USAGE << std::endl;
             return EXIT_FAILURE;
@@ -94,7 +98,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Welcome to the SENG Server" << std::endl;
     
     std::cout << "Tunnel Port: " << tunnel_port << std::endl;
-    seng::SengServerOpenSSL seng_server {tunnel_ip, tunnel_port, &stop_marker};
+    seng::SengServerOpenSSL seng_server {tunnel_ip, tunnel_port, &stop_marker, (db_path ? make_optional<std::string>(db_path) : nullopt) };
     
     std::thread seng_srv_thread {&seng::SengServerOpenSSL::run, &seng_server};
     try {

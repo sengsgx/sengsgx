@@ -3,7 +3,7 @@
 
 #include "SSLEngine_OpenSSL.hpp"
 #include "PacketForwarder_adapted.hpp"
-#include "EnclaveIndex_adapted.hpp"
+#include "EncIdxBase.hpp"
 
 #include "enc_srv_socks/ClientSocketShadower_adapted.hpp"
 #include <thread>
@@ -21,9 +21,9 @@ namespace seng {
     class SengServerOpenSSL {
     public:
         SengServerOpenSSL(std::string &ip_addr, in_port_t tunnel_port,
-                   volatile sig_atomic_t * stop_marker_ptr);
+                   volatile sig_atomic_t * stop_marker_ptr, optional<std::string> opt_db_path);
         ~SengServerOpenSSL();
-        
+  
         void run();
         // void shutdown_server(); // a lot of clean-up code is missing
         void stop_shadow_server();
@@ -52,7 +52,7 @@ namespace seng {
         //! Interface for pushing/pulling IP packets to/from host NIC
         std::shared_ptr<PacketForwarder> ip_pckt_fwder_sp;
         
-        std::shared_ptr<EnclaveIndex> enclave_idx_sp;
+        std::shared_ptr<EnclaveIndexBase> enclave_idx_sp;
         
         //! OpenSSL data structures
         SSLEngineOpenSSL ssl_engine;
