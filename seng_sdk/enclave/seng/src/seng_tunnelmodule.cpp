@@ -39,6 +39,14 @@ namespace seng {
 #endif
     }
 
+    /* TODO: Tunnel reconnections are not yet supported.
+     * Future Note: if one tunnel reconnects, the other tunnel must also be
+     * stopped and restarted. Otherwise, if attackers breach the SENG Server
+     * key pair, they could force a reconnect only for one of the tunnels and
+     * run a server impersonation attack against it. While the hijacked tunnel
+     * will be disconnected from the authenticated network, the other tunnel
+     * direction will still be authenticated and established with the real SENG
+     * Server, which could allow information leaks or C&C communication cannels. */
     bool TunnelNetif::establish_dtls_tunneling() {
         // 1st tunnel: send + config
         if (!prepare_tunnel_socket("127.0.0.1", 12345, &send_tun_fd, &send_ssl)

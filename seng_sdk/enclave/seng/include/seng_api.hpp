@@ -32,8 +32,17 @@ int init_seng_runtime(void);
 int seng_getsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 int seng_getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 
+/* TODO: While the DNS Server is set by the SENG initialization and securely
+ * contacted through the tunnel, the SENG-SDK prototype does NOT YET provide
+ * hard-coded/integrity-protected versions for configuration files like /etc/resolv.conf
+ * or /etc/services which are used by 3rd party libraries.
+ * A future version can introduce a measured manifest file with secure file
+ * hashes of configuration files, and an API for integrity-protected file access
+ * (-> lightweight file-system shield) */
 int seng_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
 void seng_freeaddrinfo(struct addrinfo *res);
+
+struct hostent *seng_gethostbyname(const char *name);
 
 int seng_poll(struct pollfd *fds, nfds_t nfds, int timeout);
 int seng_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
@@ -96,7 +105,6 @@ int seng_shutdown(int sockfd, int how);
 
 //int seng_sockatmark(int sockfd);
 
-struct hostent *seng_gethostbyname(const char *name);
 
 #if defined(__cplusplus)
 }
