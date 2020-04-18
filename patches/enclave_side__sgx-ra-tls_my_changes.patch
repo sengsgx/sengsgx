@@ -1908,10 +1908,10 @@ new file mode 100644
 index 0000000..37e5a71
 --- /dev/null
 +++ b/my_etc_files/resolv.conf
-@@ -0,0 +1,6 @@
-+search example.com 
+@@ -0,0 +1,4 @@
++search example.com
 +domain example.com
-+nameserver 8,8,8,8
++nameserver 8.8.8.8
 +options edns0 ndots:0
 diff --git a/my_etc_files/services b/my_etc_files/services
 new file mode 100644
