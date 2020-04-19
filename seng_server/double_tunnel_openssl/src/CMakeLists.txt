@@ -4,9 +4,6 @@ find_package(ChallengerLibOpenSSL REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(Threads REQUIRED)
 find_package(SQLite3 REQUIRED)
-
-# TODO: add as subrepo! / via Docker container!
-set(OPENSSL_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../compiled_openssl_1_0_2g/")
 find_package(OpenSSL REQUIRED SSL Crypto)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS seng.proto)

@@ -1,0 +1,14 @@
+version: '2'
+services:
+        seng-server:
+                image: seng/server
+                container_name: sengserver
+                build: .
+                network_mode: "host"
+                cap_add:
+                    - NET_ADMIN
+                devices:
+                        - "/dev/net/tun:/dev/net/tun"
+                volumes:
+                        - ../sgx-ra-tls:/home/encl-dev/sgx-ra-tls
+                        - .:/home/encl-dev/seng_server

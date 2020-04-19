@@ -1,12 +1,9 @@
 version: '2'
 services:
         base-container:
-                image: syssec/devimage
-                container_name: basecontainer
+                image: seng/baseimage
+                container_name: sengbase
                 privileged: false
                 build: .
-                ports:
-                        - "127.0.0.1:22222:22/tcp"
                 volumes:
-                        - ../misc/docker_demo_rsa.pub:/home/encl-dev/.ssh/authorized_keys:ro
-
+                    - ../sgx-ra-tls:/home/encl-dev/sgx-ra-tls
