@@ -58,3 +58,6 @@ RUN wget --directory-prefix /root/ ${cmake_src_url} && \
         cd ./cmake-3.14.0 && \
         ./bootstrap && make -j`nproc` && make install && \
         make clean
+
+# required for sgx driver when calling './build.sh graphene' in sgx-ra-tls repo
+RUN apt-get update && apt-get install -y --no-install-recommends linux-headers-`uname -r`

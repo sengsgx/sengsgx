@@ -12,26 +12,27 @@ Documentation will be added in the near future.
 #Preparation
 1. pull submodules:
 	`git submodule update --init --recursive`
-2. build base container:
-	$cd base_container/
-	$docker-compose build
-3. generate RSA key pair for server.
-	e.g., for a demo:
-	$cd seng_server/
-	$openssl req -x509 -newkey rsa:2048 -keyout srv_key.pem -out srv_cert.pem -days 365 -nodes
-4. patch sgx-ra-tls:
+
+2. patch sgx-ra-tls:
 	$cd sgx-ra-tls/
 	$patch -p1 < ../patches/sgx-ra-tls_seng_changes.patch
-5. add your own Intel Developer SPID to ra_tls_options.c:
+3. add your own Intel Developer SPID to ra_tls_options.c:
 	$vim sgx-ra-tls/ra_tls_options.c
-6. add quote_type in ra_tls_options.c:
+4. add quote_type in ra_tls_options.c:
 	$vim sgx-ra-tls/ra_tls_options.c
 	Options:
 	(a) SGX_LINKABLE_SIGNATURE
 	(b) SGX_UNLINKABLE_SIGNATURE
-7. add your own Intel Developer remote attestation subscription key to ias-ra.c:
+5. add your own Intel Developer remote attestation subscription key to ias-ra.c:
 	$vim sgx-ra-tls/ias-ra.c
 	at line 228, replace the "YYY" with your subscription key
+
+6. replace UID for container user, e.g., with `id --user` (cf. %TODO in dockerfile):
+	$vim base_container/Dockerfile
+7. build base container:
+	$cd base_container/
+	$docker-compose build
+	Note: will try to install headers of your host kernel version
 8. build sgx-ra-tls:
 	$cd base_container/
 	$docker-compose run base-container
@@ -39,13 +40,31 @@ Documentation will be added in the near future.
 	$cd ~/sgx-ra-tls/
 	$./build.sh graphene  %TODO: fix error/disable wolfssl build
 	$./build.sh graphene
+	$make
+
+9. generate RSA key pair for server.
+	e.g., for a demo:
+	$cd seng_server/
+	$openssl req -x509 -newkey rsa:2048 -keyout srv_key.pem -out srv_cert.pem -days 365 -nodes
 
 #SENG Server
-0. replace UID for container user, e.g., with `id --user` (cf. %TODO in dockerfile)
 1. build server container:
 	$cd seng_server/
 	$docker-compose build
-2. 
+2. build SENG server:
+	$cd seng_server/
+	$docker-compose run seng-server
+	$su encl-dev
+	$cd ~/seng_server/double_tunnel_openssl/
+	$mkdir build
+	$cd build/
+	$cmake .. -DSGX_MODE=HW
+	$make
+3. configure SENG network interface and forwarding rules:
+	(...)
+
+
+
 
 #SENG Runtime
 
