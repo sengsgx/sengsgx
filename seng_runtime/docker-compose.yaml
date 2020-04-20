@@ -1,27 +1,27 @@
 version: '2'
 services:
-        graphene-ratls-devel:
-                image: syssec/ratlsimage
-                container_name: ratls_devel
+        seng-runtime:
+                image: seng/runtime
+                container_name: seng-runtime
                 privileged: true
                 cap_add:
-                        - SYS_RAWIO
+                    - SYS_RAWIO
                 build: .
                 ports:
-                        - "127.0.0.1:22222:22/tcp"
-                        - "4711:4711/tcp"
-                        - "3443:3443/tcp"
-                        - "2834:2834/tcp"
+                    # for nginx
+                    - "4711:4711/tcp"
+                    - "3443:3443/tcp"
+                    #TODO
+                    - "2834:2834/tcp"
                 devices:
                         - "/dev/isgx:/dev/isgx"
                         - "/dev/mei0:/dev/mei0"
                         - "/dev/gsgx:/dev/gsgx"
-                        - "/dev/net/tun:/dev/net/tun"
                 volumes:
-                        - ./bootup.bash:/home/encl-dev/bootup.bash
-                        - ../sgx-ra-tls:/home/encl-dev/sgx-ra-tls
-                        - /var/run/aesmd/:/var/run/aesmd/
-                        - ../misc/docker_demo_rsa.pub:/home/encl-dev/.ssh/authorized_keys:ro
-                        - .:/home/encl-dev/client_enclave
-                        - ../benchmarking:/home/encl-dev/benchmarking
-                        - ../seng_server/double_tunnel_openssl/src/seng.proto:/home/encl-dev/middlebox_prototypes/tunnel_middlebox_srv/src/seng.proto
+                    - /var/run/aesmd:/var/run/aesmd
+                    - ../sgx-ra-tls:/home/encl-dev/sgx-ra-tls
+                    - .:/home/encl-dev/client_enclave
+                    - ../benchmarking:/home/encl-dev/benchmarking
+                    - ../seng_server/double_tunnel_openssl/src/seng.proto:/home/encl-dev/seng_server/double_tunnel_openssl/src/seng.proto
+                    - ../seng_server/srv_cert.pem:/home/encl-dev/sgx-ra-tls/middlebox_cert.pem
+
