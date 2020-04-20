@@ -36,10 +36,9 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 	Note: will try to install headers of your host kernel version
 8. build sgx-ra-tls:
 	$cd base_container/
-	$docker-compose run base-container
-	$su encl-dev
+	$docker-compose run --user encl-dev base-container
 	$cd ~/sgx-ra-tls/
-	$./build.sh graphene  %TODO: fix error/disable wolfssl build
+	$./build.sh graphene  *TODO* fix error/disable wolfssl build
 	$./build.sh graphene
 	$make
 
@@ -175,6 +174,7 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 	$mkdir build
 	$cd build/
 	$cmake .. -DSGX_HW=ON -DCMAKE_BUILD_TYPE=RELEASE
+	$make
 	-----
 	$cd ..
 	$cd ported_external_apps/nginx-1.10.3/
@@ -186,6 +186,7 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 ##sgx-ra-tls
 * simplfy configuration of subscription key (note: newer version of sgx-ra-tls now also support the new IAS authentication method)
 * option to only build the minimum of sgx-ra-tls required for the SENG server
+* fix wolfssl compilation issue / disable unrequired builds in sgx-ra-tls
 
 ##server
 * make the IP address configuration/bindings in SENG server easier configurable + more dynamic

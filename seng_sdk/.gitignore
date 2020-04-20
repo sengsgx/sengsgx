@@ -8,3 +8,5 @@ enclave/src/enclave_private.pem
 enclave/src/enclave_public.pem
 ported_external_apps/*.tar
 ported_external_apps/nginx-1.10.3
+enclave/app/src/app_enclave_private.pem
+enclave/app/src/app_enclave_public.pem
