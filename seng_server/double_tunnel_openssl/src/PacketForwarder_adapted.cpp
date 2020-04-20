@@ -49,7 +49,7 @@ namespace seng {
     
     void PacketForwarder::attach_to_tunnel_interface() {
         const char *tuntap_device = "/dev/net/tun";
-        const char *tun_name = "tunSX";
+        const char *tun_name = "tunFA";
         
         // open the tuntap device / interface to the tun LKM
         tunnel_fd = open(tuntap_device, O_RDWR);

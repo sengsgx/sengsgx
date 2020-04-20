@@ -14,9 +14,9 @@
 namespace seng {
     EnclaveIndex::EnclaveIndex() :
     EnclaveIndexBase(),
-    base_subnet(192 | 168 << 8 | 178 << 16),        // 192.168.178.0/24; Note: BigEndian (net-order)
+    base_subnet(192 | 168 << 8 | 28 << 16),        // 192.168.28.0/24; Note: BigEndian (net-order)
     netmask(255 | 255 << 8 | 255 << 16 | 0 << 24),  // 255.255.255.0 (/24)
-    gateway(base_subnet | 1 << 24),                 // 192.168.178.1
+    gateway(base_subnet | 1 << 24),                 // 192.168.28.1
     next_potential_client_number(2), client_num_bitset()
     {
         // block 0, GW IP and broadcast

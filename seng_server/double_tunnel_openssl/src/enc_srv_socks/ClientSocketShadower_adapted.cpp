@@ -56,7 +56,8 @@ namespace seng {
             .sin_family = AF_INET,
             .sin_port = htons(2409),
         };
-        int ret = inet_aton("192.168.178.1", &tun_addr.sin_addr);
+        //TODO: dynamically query the virtual interface IP
+        int ret = inet_aton("192.168.28.1", &tun_addr.sin_addr);
         assert(ret != 0);
         if (bind(tmp_sock, (struct sockaddr *)&tun_addr, sizeof(tun_addr)) < 0) {
             perror(nullptr);

@@ -50,6 +50,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         doxygen \
         graphviz
 
+# for more convenient testing
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        sudo htop less && \
+        usermod -a -G sudo ${username} && \
+        sed -i 's/%sudo\tALL=(ALL:ALL) ALL/%sudo\tALL=(ALL:ALL) NOPASSWD:ALL/' /etc/sudoers
+
 # CMake 3.14 from source
 RUN wget --directory-prefix /root/ ${cmake_src_url} && \
         cd /root/ && \

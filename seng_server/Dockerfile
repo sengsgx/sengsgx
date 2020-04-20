@@ -17,7 +17,8 @@ RUN mkdir --mode 775 /opt/intel/ && \
 # for demo Sqlite3 support
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libsqlite3-0 \
-        libsqlite3-dev
+        libsqlite3-dev \
+        sqlite3
 
 # TODO: remove after ShadowServer migrated to OpenSSL
 RUN apt-get update && apt-get install -y --no-install-recommends \ 

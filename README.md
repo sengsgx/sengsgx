@@ -60,11 +60,32 @@ Documentation will be added in the near future.
 	$cd build/
 	$cmake .. -DSGX_MODE=HW
 	$make
-3. configure SENG network interface and forwarding rules:
-	(...)
+3. symlink server key-pair:
+	$cd build/
+	$ln -s ../../srv_key.pem .
+	$ln -s ../../srv_cert.pem .
+4. configure SENG network interface:
+ 	Options:
+ 	(a) from host system (if running "host" networking mode in server container)
+		$cd seng_server
+		$./setup_seng_interface.bash
+	(b) from inside server container [*TODO* requires installing iproute2 inside container]
+		$sudo ~/seng_server/setup_seng_interface.bash
+	
+	note: if running "host" networking mode, (b) might run into nftables-iptables issues;
 
-
-
+	*TODO* TUN device subnetwork must not collide with existing ones of the server;
+	*TODO* alternatively might consider removing "host" networking mode and add port binding/forwarding to container
+5. configure forwarding rules:
+	*TODO* iptables rules to allow forwarding traffic between TUN interface and in/out host network interface(s)
+6. Optional: Generate Sqlite3 demo database:
+	$cd ~/seng_server/double_tunnel_openssl/
+	$sqlite3 demo_sqlite3.db < seng_db_creator.sql
+7. run SENG server:
+	$cd build/
+	$sudo ./src/seng_ossl_double_tunnel_server [-d <db>] <port>
+8. gracefully shutdown SENG server:
+	ctrl+C, wait
 
 #SENG Runtime
 
@@ -78,3 +99,4 @@ Documentation will be added in the near future.
 #TODOs
 * simplfy configuration of subscription key (note: newer version of sgx-ra-tls now also support the new IAS authentication method)
 * option to only build the minimum of sgx-ra-tls required for the SENG server
+* make the IP address configuration/bindings in SENG server easier configurable + more dynamic

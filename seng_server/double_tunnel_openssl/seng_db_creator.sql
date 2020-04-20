@@ -21,7 +21,7 @@ CREATE TABLE "apps" (
 );
 
 INSERT INTO enclave_subnets
-    VALUES(1,0x00b2a8c0,0x00ffffff,0x01b2a8c0);
+    VALUES(1,0x001ca8c0,0x00ffffff,0x011ca8c0);
 
 INSERT INTO enclave_subnets
     VALUES(2,0x000010ac,0xc0ffffff,0x010010ac);
