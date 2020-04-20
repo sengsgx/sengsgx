@@ -50,7 +50,9 @@ cp ${P_DIR}/sgxssl/build_openssl.sh sgxssl/Linux/ && \
 cp ${P_DIR}/sgxssl/bypass_to_sgxssl.h sgxssl/openssl_source/ && \
 cp ${P_DIR}/sgxssl/sgx_tsgxssl.edl sgxssl/Linux/package/include/ && \
 cp ${P_DIR}/sgxssl/libsgx_tsgxssl/* sgxssl/Linux/sgx/libsgx_tsgxssl/ && \
-cp ${P_DIR}/sgxssl/sgx/Makefile sgxssl/Linux/sgx/ || exit 1
+cp ${P_DIR}/sgxssl/sgx/Makefile sgxssl/Linux/sgx/ && \
+cp ${P_DIR}/sgxssl/bss_dgram.c sgxssl/openssl_source/ && \
+cp ${P_DIR}/sgxssl/dtls1.h sgxssl/openssl_source/ || exit 1
 
 
 # Fetch Protobuf-C 1.2.1

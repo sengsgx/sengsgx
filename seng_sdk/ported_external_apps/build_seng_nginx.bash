@@ -1,11 +1,11 @@
 #!/bin/bash
 
-set -x
+#set -x
 
 make clean
 
 source /opt/intel/sgxsdk/environment
-SENG_PATH=~/client_enclave/sdk_based_version
+SENG_PATH="`pwd`/../../"
 EDL_PATHS="${SENG_PATH}/enclave/seng/include:${SENG_PATH}/external/sgxssl/Linux/package/include:${SENG_PATH}/external/seng_lwip_port/include:${SENG_PATH}/external/sgx-ra-tls/include:/opt/intel/sgxsdk/include:src/os/seng/trusted/"
 sgx_edger8r --search-path "${EDL_PATHS}" \
     --untrusted-dir "src/os/seng/untrusted/" \

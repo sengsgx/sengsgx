@@ -31,14 +31,8 @@
 #   The version of curl found.
 
 # Look for the header file.
-find_path(CURL_INCLUDE_DIR NAMES curl/curl.h
-#        HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../../../sgx-ra-tls/deps/local/include/"
-        HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../../../downloads/include/"
-        )
+find_path(CURL_INCLUDE_DIR NAMES curl/curl.h)
 mark_as_advanced(CURL_INCLUDE_DIR)
-
-message("-- CURL_LIBRARY [before search]: ${CURL_LIBRARY}")
-message("-- hint path: ${CMAKE_CURRENT_SOURCE_DIR}/../../../sgx-ra-tls/deps/local/include/")
 
 # Look for the library (sorted from most current/relevant entry to least).
 find_library(CURL_LIBRARY NAMES
@@ -49,8 +43,6 @@ find_library(CURL_LIBRARY NAMES
     curllib_static
   # Windows older "Win32 - MSVC" prebuilts (libcurl.lib, e.g. libcurl-7.15.5-win32-msvc.zip):
     libcurl
-#    HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../../../sgx-ra-tls/deps/local/lib/"
-    HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../../../downloads/lib/"
 )
 mark_as_advanced(CURL_LIBRARY)
 

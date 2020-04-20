@@ -47,6 +47,7 @@ namespace seng {
         X509_STORE *cacert_store = SSL_CTX_get_cert_store(ctx);
         if (cacert_store == nullptr) throw std::runtime_error("Getting (CA) Cert Store failed");
 
+        //TODO: add mechanism to securely fetch from disk instead
         X509 *ngw_cert;
         const char *ngw_hc_cert = "-----BEGIN CERTIFICATE-----\nADD_YOURS\n-----END CERTIFICATE-----";
 

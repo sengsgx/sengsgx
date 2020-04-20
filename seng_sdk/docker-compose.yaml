@@ -1,0 +1,21 @@
+version: '2'
+services:
+        seng-sdk:
+                image: seng/sdk
+                container_name: seng-sdk
+                #privileged: true
+                #cap_add:
+                #    - SYS_RAWIO
+                build: .
+                ports:
+                    # for nginx
+                    - "4711:4711/tcp"
+                devices:
+                        - "/dev/isgx:/dev/isgx"
+                        - "/dev/mei0:/dev/mei0"
+                volumes:
+                    - /var/run/aesmd:/var/run/aesmd
+                    - ../sgx-ra-tls:/home/encl-dev/sgx-ra-tls
+                    - .:/home/encl-dev/seng_sdk
+                    - ../seng_server/double_tunnel_openssl/src/seng.proto:/home/encl-dev/seng_server/double_tunnel_openssl/src/seng.proto
+

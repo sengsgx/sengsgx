@@ -8,6 +8,7 @@ Documentation will be added in the near future.
 
 * seng_sdk/ --  contains the alternative client-side component without LibOS, but rather based on the Intel SGX SDK
 
+Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 4.15.0-91. The client-side has already been successfully tested with an older container version on Ubuntu 18.04.2 LTS and kernel 4.15-0-47.
 
 #Preparation
 1. pull submodules:
@@ -45,7 +46,7 @@ Documentation will be added in the near future.
 9. generate RSA key pair for server.
 	e.g., for a demo:
 	$cd seng_server/
-	$openssl req -x509 -newkey rsa:2048 -keyout srv_key.pem -out srv_cert.pem -days 365 -nodes
+	$openssl req -x509 -newkey rsa:3072 -keyout srv_key.pem -out srv_cert.pem -days 365 -nodes
 
 #SENG Server
 1. build server container:
@@ -60,7 +61,7 @@ Documentation will be added in the near future.
 	$cmake .. -DSGX_MODE=HW -DCMAKE_BUILD_TYPE=RELEASE
 	$make
 
-3. symlink server key-pair:
+3. symlink server key pair:
 	$cd build/
 	$ln -s ../../srv_key.pem .
 	$ln -s ../../srv_cert.pem .
@@ -141,6 +142,43 @@ Documentation will be added in the near future.
 
 
 ##SENG SDK
+1. fetch libraries:
+	$cd seng_sdk/
+	$./fetch_external_libs.bash
+2. fetch NGINX and patch it:
+	$./fetch_external_apps.bash
+
+3. build SDK container:
+	$docker-compose build
+
+4. download, patch and build Intel SGX SDK+PSW:
+	$docker-compose run --user encl-dev seng-sdk
+	$cd ~/seng_sdk/
+	$./build_patched_sdkpsw_sgxssl.bash
+
+5. generate enclave signing key pair with exponent 3 for demo app and Nginx:
+	$cd seng_sdk/enclave/app/src/
+	$openssl genrsa -out app_enclave_private.pem -3 3072
+	$openssl rsa -in app_enclave_private.pem -pubout -out app_enclave_public.pem
+
+6. add public key of SENG server:
+	$cd seng_sdk/
+	$vim enclave/seng/src/DT_SSLEngineClient_OpenSSL.cpp
+
+	at line 52, replace "ADD_YOURS" in the "ngw_hc_cert" variable with your public server key without newlines as should be output by:
+	$sed '1d;$d;' ../seng_server/srv_cert.pem|tr -d \\n|tr \& \\\&
+
+7. build SENG SDK libraries with demo app, followed by SENG-NGINX:
+	$docker-compose run --user encl-dev seng-sdk
+		[press "y" or "Y" on SDK/PSW re-install prompt]
+	$cd ~/seng_sdk/
+	$mkdir build
+	$cd build/
+	$cmake .. -DSGX_HW=ON -DCMAKE_BUILD_TYPE=RELEASE
+	-----
+	$cd ..
+	$cd ported_external_apps/nginx-1.10.3/
+	$../build_seng_nginx.bash
 
 
 
@@ -151,3 +189,6 @@ Documentation will be added in the near future.
 
 ##server
 * make the IP address configuration/bindings in SENG server easier configurable + more dynamic
+
+##sdk
+* FIX: currently SDK and PSW are installed inside the container, i.e., on restarts/reinstantiation, both are gone again; temporary work-arounded by adding the option to cause a direct re-install on container session start if it has been compiled before

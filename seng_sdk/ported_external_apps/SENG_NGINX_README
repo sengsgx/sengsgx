@@ -1,9 +1,8 @@
 NGINX Building
 --------------
-(-0. build sgxssl)
-- 1. build SENG-SDK lib to have lwIP, SENG and co. libraries ready
-- 2. patch NGINX via `patch -p1 < WIP_nginx_seng.patch`
-- 3. build SENG-NGINX via `../build_seng_nginx.bash` from within nginx
+- 1. build SENG-SDK with external libs to have lwIP, SENG and co. libraries ready
+- 2. run ../fetch_external_apps.bash to fetch and patch NGINX
+- 3. build SENG-NGINX via `../build_seng_nginx.bash` from within nginx directory
 
 Note: mini_nginx.conf will be auto-copied to build/config/
 
