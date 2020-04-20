@@ -7,3 +7,5 @@ sudo ip tuntap add mode tun user `whoami` one_queue name tunFA || exit 1
 sudo ip link set tunFA mtu 1432 || exit 1
 sudo ip link set tunFA up || exit 1
 sudo ip addr add 192.168.28.1/24 dev tunFA || exit 1
+# used in sqlite3 demo database for the 2nd enclave network
+sudo ip addr add 172.16.28.1/24 dev tunFA || exit 1

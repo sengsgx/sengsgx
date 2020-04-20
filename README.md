@@ -60,6 +60,7 @@ Documentation will be added in the near future.
 	$cd build/
 	$cmake .. -DSGX_MODE=HW
 	$make
+
 3. symlink server key-pair:
 	$cd build/
 	$ln -s ../../srv_key.pem .
@@ -78,9 +79,11 @@ Documentation will be added in the near future.
 	*TODO* alternatively might consider removing "host" networking mode and add port binding/forwarding to container
 5. configure forwarding rules:
 	*TODO* iptables rules to allow forwarding traffic between TUN interface and in/out host network interface(s)
+
 6. Optional: Generate Sqlite3 demo database:
 	$cd ~/seng_server/double_tunnel_openssl/
 	$sqlite3 demo_sqlite3.db < seng_db_creator.sql
+
 7. run SENG server:
 	$cd build/
 	$sudo ./src/seng_ossl_double_tunnel_server [-d <db>] <port>
@@ -97,6 +100,9 @@ Documentation will be added in the near future.
 
 
 #TODOs
+##sgx-ra-tls
 * simplfy configuration of subscription key (note: newer version of sgx-ra-tls now also support the new IAS authentication method)
 * option to only build the minimum of sgx-ra-tls required for the SENG server
+
+##server
 * make the IP address configuration/bindings in SENG server easier configurable + more dynamic

@@ -24,7 +24,7 @@ INSERT INTO enclave_subnets
     VALUES(1,0x001ca8c0,0x00ffffff,0x011ca8c0);
 
 INSERT INTO enclave_subnets
-    VALUES(2,0x000010ac,0xc0ffffff,0x010010ac);
+    VALUES(2,0x001c10ac,0xc0ffffff,0x011c10ac);
 
 INSERT INTO apps
     VALUES(1,
