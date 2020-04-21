@@ -14,7 +14,13 @@ unzip sgx_2.7.1.zip
 
 #pushd linux-sgx
 pushd linux-sgx-sgx_2.7.1
+# main SENG-SDK patch for SDK/PSW
 patch -p1 < ../../patches/psw_sdk/WIP_timedwait_sdk_psw.patch || exit 1
+#TODO: this 2nd patch is only to fix compilation of the LocalAttestation and 
+#      SampleEnclavePCL Intel SGX SDK Samples by adding includes to the EDL files;
+#      the issue is fixed in release binaries and later versions of the Intel SGX SDK;
+#  Note: the 2nd patch is not required for SENG-SDK;
+patch -p1 < ../../patches/psw_sdk/sdk_workaround_fix.patch || exit 1
 ./download_prebuilt.sh
 
 # for psw pkg debug infos

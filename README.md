@@ -109,12 +109,18 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 2. Install PSW version 2.7.1 at host
 	e.g. for Ubuntu 16.04 LTS:
 	$cd external/
+
 	$wget https://download.01.org/intel-sgx/sgx-linux/2.7.1/distro/ubuntu16.04-server/libsgx-enclave-common_2.7.101.3-xenial1_amd64.deb
 	$sudo dpkg -i ./libsgx-enclave-common_2.7.101.3-xenial1_amd64.deb
+	
+	$wget https://download.01.org/intel-sgx/sgx-linux/2.7.1/distro/ubuntu16.04-server/libsgx-enclave-common-dev_2.7.101.3-xenial1_amd64.deb
+	$sudo dpkg -i ./libsgx-enclave-common-dev_2.7.101.3-xenial1_amd64.deb
 	
 	check that aesmd is running:
 	$service aesmd status
 	"/var/run/aesmd/aesm.socket" should exist now
+
+	*NOTE* "SealedData" SDK sample did not work for us under that setup; (it worked under different SDK/PSW versions though, so we guess it is fixed under different versions/platforms)
 
 3. Install Graphene-SGX driver (legacy?) at host (optionally from build container), e.g.:
 	$sudo insmod sgx-ra-tls/deps/graphene/Pal/src/host/Linux-SGX/sgx-driver/graphene-sgx.ko
