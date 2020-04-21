@@ -89,6 +89,8 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 8. gracefully shutdown SENG server:
 	ctrl+C, wait
 
+*NOTE*: The SENG Server currently uses 2 DTLS channels for the tunnel--one for each direction; Note that currently the 1st tunnel uses the CLI-chosen port number, while the 2nd one currently always uses 4711/udp. (cf. TODO)
+
 #SENG Client-side
 
 ##Prerequisites
@@ -112,15 +114,16 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 
 	$wget https://download.01.org/intel-sgx/sgx-linux/2.7.1/distro/ubuntu16.04-server/libsgx-enclave-common_2.7.101.3-xenial1_amd64.deb
 	$sudo dpkg -i ./libsgx-enclave-common_2.7.101.3-xenial1_amd64.deb
-	
-	$wget https://download.01.org/intel-sgx/sgx-linux/2.7.1/distro/ubuntu16.04-server/libsgx-enclave-common-dev_2.7.101.3-xenial1_amd64.deb
-	$sudo dpkg -i ./libsgx-enclave-common-dev_2.7.101.3-xenial1_amd64.deb
-	
+
 	check that aesmd is running:
 	$service aesmd status
 	"/var/run/aesmd/aesm.socket" should exist now
 
-	*NOTE* "SealedData" SDK sample did not work for us under that setup; (it worked under different SDK/PSW versions though, so we guess it is fixed under different versions/platforms)
+	(Optionally:
+	$wget https://download.01.org/intel-sgx/sgx-linux/2.7.1/distro/ubuntu16.04-server/libsgx-enclave-common-dev_2.7.101.3-xenial1_amd64.deb
+	$sudo dpkg -i ./libsgx-enclave-common-dev_2.7.101.3-xenial1_amd64.deb)
+
+	*NOTE* "SealedData" SDK sample did not work for us under that setup; (it worked under different SDK/PSW versions though, so we guess it is fixed under different versions/platforms) This does NOT affect SENG.
 
 3. Install Graphene-SGX driver (legacy?) at host (optionally from build container), e.g.:
 	$sudo insmod sgx-ra-tls/deps/graphene/Pal/src/host/Linux-SGX/sgx-driver/graphene-sgx.ko
@@ -187,8 +190,85 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 	$../build_seng_nginx.bash
 
 
+#Running Sample Applications
+
+*NOTE*: ensure that you followed the setup steps above, s.t. all certificates and keys are in place, as well as the SENG interface and SGX driver/aesmd up and running.
+
+*NOTE2*: you should only connect 1 enclave at once to the SENG server to avoid potential issues (cf. corresponding TODO entry)
+
+##SENG Runtime
+*TODO*
+
+##SENG SDK
+###Demo App
+What it does:
+1. Test O/ECALLs and switchless mode
+* spawns enclave with 2 untrusted and 1 trusted worker thread (for switchless O/ECALLs)
+* registers a signal handler for SIGALRM
+* spawns a 2nd thread
+* performs some demo regular and switchless O/ECALLS
+
+2. SENG init and secure UDP communication
+* initializes SENG via init_seng_runtime(<srvIP>, <srvPort>); -- 127.0.0.1:12345 for the demo
+* creates 2 secure UDP and 1 secure TCP socket using the SENG API and closes them again (one of them double close)
+* creates a secure UDP socket and "connects" with it to 192.168.178.45:8391
+* sends multiple small messages to the destination through the SENG tunnel
+* then waits for at most 2 reply messages by the destination; only for 1 if the first reply was >= 1501 Bytes
+* then sends a 1404 Bytes message to the destination; the 1404 Bytes app data together with 20 Bytes IP header and 8 Bytes UDP header will result in a 1432 Bytes packet being sent through the SENG tunnel, which is the currently configured MTU for the virtual SENG interface;
+* then waits for a reply with a receive timeout of 2 seconds to test the timeout feature added to the SGX PSW/SDK
+* closes the secure UDP socket
+
+3. Test the added timeout support in SGX PSW/SDK for condition variables
+* waits on an SGX condition variable with 3 second timeout
+* will indicate the successfully raised timeout
+
+Prerequisites:
+1. the Demo App is already compiled together with the SENG SDK
+2. ensure that the SENG Server is running and using port 12345, localhost
+
+Wait at host for DemoApp messages:
+use a netcat instance to listen at 192.168.178.45:8391/udp;
+the IP/port can be adapted in enclave/app/src/app_enclave.c: line 48 and 50;	
+
+$netcat -u -n -l -p 8391 192.168.178.45 
+
+Running the DemoApp:
+$docker-compose run --user encl-dev seng-sdk
+$cd ~/seng_sdk/build/
+$./app/app/src/DemoApp
+
+
+###SENG NGINX
+What it does:
+It runs NGINX inside an Intel SGX Enclave based on the Intel SGX SDK and the SENG SDK.
+
+Prerequisites:
+1. NGINX has been downloaded, patched and built as part of the SENG SDK installation steps above
+2. ensure that the SENG Server is running and using port 12345, localhost
+
+Running SENG NGINX:
+$docker-compose run --user encl-dev seng-sdk
+$cd ~/seng_sdk/ported_external_apps/nginx-1.10.3/build/
+$./sbin/seng_nginx
+
+Connecting from host to it:
+use port 4711/tcp and the enclave IP assigned by the SENG server, probably 192.168.28.2
+
+$netcat 192.168.28.2 4711
+
+you are now connected to NGINX and can issue an HTTP request:
+[from netcat]
+GET / HTTP/1.0\n
+\n
+
+and receive the NGINX demo page as result.
+
+
 
 #TODOs
+* localhost destination IPs through(!) tunnel are not yet working, because currently lwIP interprets them internally and refuses them;
+* make IPs and Ports easier configurable at SENG Server, Runtime and SDK
+
 ##sgx-ra-tls
 * simplfy configuration of subscription key (note: newer version of sgx-ra-tls now also support the new IAS authentication method)
 * option to only build the minimum of sgx-ra-tls required for the SENG server
@@ -196,6 +276,11 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 
 ##server
 * make the IP address configuration/bindings in SENG server easier configurable + more dynamic
+* *CAUTION*: the SENG Server currently can have problems handling multiple Enclaves, because its current use of SO_REUSEPORT causes problems if newly connecting Enclaves are not bound to the current, fresh welcome socket by the kernel; cf. discussion in "SengServer_OpenSSL.cpp" for fixing it in a future version;
+* change that the 2nd SENG server tunnel always uses 4711
+* offer instructions for an alternative container variant without "host" networking mode
 
 ##sdk
 * FIX: currently SDK and PSW are installed inside the container, i.e., on restarts/reinstantiation, both are gone again; temporary work-arounded by adding the option to cause a direct re-install on container session start if it has been compiled before
+* SENG SDK does not yet gracefully shutdown the enclave, but might hang on shutdown; this affects the DemoApp and SENG NGINX at the moment; the DemoApp can be terminated via ctrl+C, while NGINX currently has to be killed; -- we need to add a notification mechanism to wakeup the blocking recv/read() call of the tunnel thread and shutdown the lwIP thread before destroying the enclave;
+* add support to SENG NGINX to change SENG Server IP+Port via NGINX config file

@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-int init_seng_runtime(void);
+int init_seng_runtime(const char *server_ip, short server_port);
 
 /* --------------------------------- */
 

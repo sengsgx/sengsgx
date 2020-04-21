@@ -3,9 +3,8 @@ services:
         seng-sdk:
                 image: seng/sdk
                 container_name: seng-sdk
-                #privileged: true
-                #cap_add:
-                #    - SYS_RAWIO
+                # TODO: only for IP-independent testing with localhost
+                network_mode: "host"
                 build: .
                 ports:
                     # for nginx

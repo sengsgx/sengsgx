@@ -285,10 +285,13 @@ namespace seng {
         std::cout << "Client IP: " << inet_ntoa(cli_addr.sin_addr) << std::endl;
         std::cout.flush();
 #endif
-       /* NOTE: have to switch to single DTLS socket in future for bullet proof multi-enclave support;
-        *       current approach relies on Linux kernel feature that keeps delivering UDP packets to the
-        *       same UDP socket that accepted the "connection", even if other sockets share IP/Port,
-        *       so it works with multi-enclaves!
+       /* TODO: have to switch to single DTLS socket in future for bullet proof multi-enclave support;
+        *       it has to accept all packets and forward them to the respective TunnelToEnclave object(s);
+        *       multiple welcome sockets could be used for load balancing;
+        *       current approach relies on SO_REUSEPORT and Linux kernel's behaviour of delivering
+        *       UDP packets to the same UDP socket that accepted the "connection", even if other sockets share IP/Port.
+        *       It works with multi-enclaves, but only if each new enclave is always connected to the
+        *       current (fresh/unshared) welcome socket, which sometimes seems to fail!
         */
 
 

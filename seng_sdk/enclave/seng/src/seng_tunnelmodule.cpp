@@ -47,14 +47,14 @@ namespace seng {
      * will be disconnected from the authenticated network, the other tunnel
      * direction will still be authenticated and established with the real SENG
      * Server, which could allow information leaks or C&C communication cannels. */
-    bool TunnelNetif::establish_dtls_tunneling() {
+    bool TunnelNetif::establish_dtls_tunneling(const char *server_ip, short server_port) {
         // 1st tunnel: send + config
-        if (!prepare_tunnel_socket("127.0.0.1", 12345, &send_tun_fd, &send_ssl)
+        if (!prepare_tunnel_socket(server_ip, server_port, &send_tun_fd, &send_ssl)
             || !connect_tunnel(send_ssl)) return false;
         if (!recv_ip_config()) return false;
 
         // 2nd tunnel: recv
-        if (!prepare_tunnel_socket("127.0.0.1", 4711, &recv_tun_fd, &recv_ssl)
+        if (!prepare_tunnel_socket(server_ip, 4711, &recv_tun_fd, &recv_ssl)
             || !connect_tunnel(recv_ssl)) return false;
 
         return true;

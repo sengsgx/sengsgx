@@ -23,7 +23,7 @@ namespace seng {
         ~TunnelNetif();
 
         //! Establish duo DTLS tunnel with NGW
-        bool establish_dtls_tunneling();
+        bool establish_dtls_tunneling(const char *ip, short port);
 
     private:
         //! MTU of SENG tunnel module (1500B Ethernet MTU - 20 outer IP - 8 outer UDP - <= 40 DTLS)

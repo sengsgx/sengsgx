@@ -59,7 +59,7 @@ static void init_and_add_tunnel_module(void *arg) {
 #endif
 }
 
-int init_seng_runtime(void) {
+int init_seng_runtime(const char *server_ip, short server_port) {
 	SGXSSLSetPrintToStdoutStderrCB(vprintf_cb);
 	SGXSSLSetUnreachableCodePolicy(UNREACH_CODE_REPORT_ERR_AND_CONTNUE);
 	try {
@@ -69,7 +69,8 @@ int init_seng_runtime(void) {
 
 		// TODO: move inside netif-init process instead?
 		// [but then tcpip thread will already run even if error; though could crash it via exception...]
-		if (!tunnel_runtime.establish_dtls_tunneling()) return -1;
+		// TODO: cleanup TunnelNetif object on error
+		if (!tunnel_runtime.establish_dtls_tunneling(server_ip, server_port)) return -1;
 	} catch(std::exception &e) {
 		printf("Error: %s\n", e.what());
 		return -1;

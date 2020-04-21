@@ -27,9 +27,11 @@ void t_sgxssl_call_apis()
 	//int fd = BIO_socket(2, 2, 0, 0); // AF_INET, SOCK_DGRAM
 
 	printf("[Enclave] Trying to init SENG runtime\n");
-	if (init_seng_runtime() < 0) {
+	if (init_seng_runtime("127.0.0.1", 12345) < 0) {
 		printf("[Enclave] Failed to init SENG runtime!\n");
 	} else {
+		printf("[Enclave] Success! Starting network demo.\n");
+
 		// try seng_socket() via lwIP
 		int s_udp_fd = seng_socket(PF_INET,SOCK_DGRAM,0); // (2,2,0)
 		int s_udp_fd2 = seng_socket(PF_INET,SOCK_DGRAM,0);
@@ -43,7 +45,10 @@ void t_sgxssl_call_apis()
 		printf("close: %d\n", seng_close(s_udp_fd2));
 		printf("close: %d\n", seng_close(s_tcp_fd));
 
-
+		short demo_port {8391};
+		// TODO: adapt accordingly
+		const char *demo_ip {"192.168.178.45"};
+		printf("[Enclave] Trying to connect to demo target on %s:%d/udp!\n", demo_ip, demo_port);
 
 		int udp_con = seng_socket(PF_INET,SOCK_DGRAM,0);
 		//int udp_con = seng_socket(PF_INET,SOCK_DGRAM,0);
@@ -53,8 +58,8 @@ void t_sgxssl_call_apis()
 			struct sockaddr_in trgt;
 			//trgt.sin_len = sizeof(trgt);
 			trgt.sin_family = AF_INET;
-			trgt.sin_port = lwip_htons(8391);
-			if (0 == inet_aton("127.0.0.1", &trgt.sin_addr)) {
+			trgt.sin_port = lwip_htons(demo_port);
+			if (0 == inet_aton(demo_ip, &trgt.sin_addr)) {
 				printf("Failed address conversion!\n");
 			} else {
 				if (-1 == seng_connect(udp_con, (const sockaddr *)&trgt, sizeof(trgt))) {
