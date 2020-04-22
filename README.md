@@ -197,6 +197,30 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 *NOTE2*: you should only connect 1 enclave at once to the SENG server to avoid potential issues (cf. corresponding TODO entry)
 
 ##SENG Runtime
+###Demo App
+What it does:
+* connects to 192.168.178.45:8391/tcp
+* send demo message through TCP connection
+
+Prerequisites:
+1. ensure that the SENG Server is running and using port 12345, localhost
+
+Build the Demo App:
+$cd seng_runtime/
+$docker-compose run --user encl-dev seng-runtime
+$cd ~/client_enclave/lwip_based_client_lib/demo_app/
+$mkdir build
+$cd build/
+$cmake ..
+$make
+
+Run the Demo App:
+$docker-compose run --user encl-dev seng-runtime
+$cd ~/client_enclave/lwip_based_client_lib/demo_app/
+$./run_demoapp.bash
+
+
+###Real-world Apps
 *TODO*
 
 ##SENG SDK

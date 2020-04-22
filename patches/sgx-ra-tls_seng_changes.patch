@@ -2522,21 +2522,13 @@ index 0000000..1ff6f8e
 @@ -0,0 +1 @@
 +../LibOS/glibc-build/elf/ld-linux-x86-64.so.2
 \ No newline at end of file
-diff --git a/graphene_runtime_symlinks/libadapted_lwip_tun_netif.so b/graphene_runtime_symlinks/libadapted_lwip_tun_netif.so
-new file mode 120000
-index 0000000..f44af6b
---- /dev/null
-+++ b/graphene_runtime_symlinks/libadapted_lwip_tun_netif.so
-@@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libadapted_lwip_tun_netif.so
-\ No newline at end of file
 diff --git a/graphene_runtime_symlinks/libapp_bench_onload.so b/graphene_runtime_symlinks/libapp_bench_onload.so
 new file mode 120000
-index 0000000..8a7ba4b
+index 0000000..5c2c604
 --- /dev/null
 +++ b/graphene_runtime_symlinks/libapp_bench_onload.so
 @@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libapp_bench_onload.so
++/home/encl-dev/client_enclave/lwip_based_client_lib/build/dtls_tunnel_netif/src/libapp_bench_onload.so
 \ No newline at end of file
 diff --git a/graphene_runtime_symlinks/libapr-1.so.0 b/graphene_runtime_symlinks/libapr-1.so.0
 new file mode 120000
@@ -2716,19 +2708,11 @@ index 0000000..c40d629
 \ No newline at end of file
 diff --git a/graphene_runtime_symlinks/liblwip.so b/graphene_runtime_symlinks/liblwip.so
 new file mode 120000
-index 0000000..f85246a
+index 0000000..50155c0
 --- /dev/null
 +++ b/graphene_runtime_symlinks/liblwip.so
 @@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/liblwip.so
-\ No newline at end of file
-diff --git a/graphene_runtime_symlinks/liblwip_no_seng_onload.so b/graphene_runtime_symlinks/liblwip_no_seng_onload.so
-new file mode 120000
-index 0000000..ef9ae4d
---- /dev/null
-+++ b/graphene_runtime_symlinks/liblwip_no_seng_onload.so
-@@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/liblwip_no_seng_onload.so
++/home/encl-dev/client_enclave/lwip_based_client_lib/build/liblwip.so
 \ No newline at end of file
 diff --git a/graphene_runtime_symlinks/libm.so.6 b/graphene_runtime_symlinks/libm.so.6
 new file mode 120000
@@ -2852,91 +2836,35 @@ index 0000000..4bfd214
 \ No newline at end of file
 diff --git a/graphene_runtime_symlinks/libseng_mbench_ossl_double_tunnel_netif.so b/graphene_runtime_symlinks/libseng_mbench_ossl_double_tunnel_netif.so
 new file mode 120000
-index 0000000..49ca411
+index 0000000..600d16d
 --- /dev/null
 +++ b/graphene_runtime_symlinks/libseng_mbench_ossl_double_tunnel_netif.so
 @@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_mbench_ossl_double_tunnel_netif.so
-\ No newline at end of file
-diff --git a/graphene_runtime_symlinks/libseng_mbench_tunnel_netif.so b/graphene_runtime_symlinks/libseng_mbench_tunnel_netif.so
-new file mode 120000
-index 0000000..3a5a3c4
---- /dev/null
-+++ b/graphene_runtime_symlinks/libseng_mbench_tunnel_netif.so
-@@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_mbench_tunnel_netif.so
-\ No newline at end of file
-diff --git a/graphene_runtime_symlinks/libseng_onload.so b/graphene_runtime_symlinks/libseng_onload.so
-new file mode 120000
-index 0000000..80996a9
---- /dev/null
-+++ b/graphene_runtime_symlinks/libseng_onload.so
-@@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_onload.so
-\ No newline at end of file
-diff --git a/graphene_runtime_symlinks/libseng_onload_finegrained_mbench.so b/graphene_runtime_symlinks/libseng_onload_finegrained_mbench.so
-new file mode 120000
-index 0000000..84f475c
---- /dev/null
-+++ b/graphene_runtime_symlinks/libseng_onload_finegrained_mbench.so
-@@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_onload_finegrained_mbench.so
-\ No newline at end of file
-diff --git a/graphene_runtime_symlinks/libseng_onload_mbench.so b/graphene_runtime_symlinks/libseng_onload_mbench.so
-new file mode 120000
-index 0000000..0f9074c
---- /dev/null
-+++ b/graphene_runtime_symlinks/libseng_onload_mbench.so
-@@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_onload_mbench.so
++/home/encl-dev/client_enclave/lwip_based_client_lib/build/dtls_tunnel_netif/src/libseng_mbench_ossl_double_tunnel_netif.so
 \ No newline at end of file
 diff --git a/graphene_runtime_symlinks/libseng_ossl_double_onload.so b/graphene_runtime_symlinks/libseng_ossl_double_onload.so
 new file mode 120000
-index 0000000..c5f24ac
+index 0000000..5e1b1d2
 --- /dev/null
 +++ b/graphene_runtime_symlinks/libseng_ossl_double_onload.so
 @@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_ossl_double_onload.so
++/home/encl-dev/client_enclave/lwip_based_client_lib/build/dtls_tunnel_netif/src/libseng_ossl_double_onload.so
 \ No newline at end of file
 diff --git a/graphene_runtime_symlinks/libseng_ossl_double_onload_finegrained_mbench.so b/graphene_runtime_symlinks/libseng_ossl_double_onload_finegrained_mbench.so
 new file mode 120000
-index 0000000..cfc5626
+index 0000000..d6909f4
 --- /dev/null
 +++ b/graphene_runtime_symlinks/libseng_ossl_double_onload_finegrained_mbench.so
 @@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_ossl_double_onload_finegrained_mbench.so
++/home/encl-dev/client_enclave/lwip_based_client_lib/build/dtls_tunnel_netif/src/libseng_ossl_double_onload_finegrained_mbench.so
 \ No newline at end of file
 diff --git a/graphene_runtime_symlinks/libseng_ossl_double_tunnel_netif.so b/graphene_runtime_symlinks/libseng_ossl_double_tunnel_netif.so
 new file mode 120000
-index 0000000..cb4eb24
+index 0000000..620fb4c
 --- /dev/null
 +++ b/graphene_runtime_symlinks/libseng_ossl_double_tunnel_netif.so
 @@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_ossl_double_tunnel_netif.so
-\ No newline at end of file
-diff --git a/graphene_runtime_symlinks/libseng_ossl_onload.so b/graphene_runtime_symlinks/libseng_ossl_onload.so
-new file mode 120000
-index 0000000..73c2ed7
---- /dev/null
-+++ b/graphene_runtime_symlinks/libseng_ossl_onload.so
-@@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_ossl_onload.so
-\ No newline at end of file
-diff --git a/graphene_runtime_symlinks/libseng_ossl_tunnel_netif.so b/graphene_runtime_symlinks/libseng_ossl_tunnel_netif.so
-new file mode 120000
-index 0000000..a5a0017
---- /dev/null
-+++ b/graphene_runtime_symlinks/libseng_ossl_tunnel_netif.so
-@@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_ossl_tunnel_netif.so
-\ No newline at end of file
-diff --git a/graphene_runtime_symlinks/libseng_tunnel_netif.so b/graphene_runtime_symlinks/libseng_tunnel_netif.so
-new file mode 120000
-index 0000000..3447d0c
---- /dev/null
-+++ b/graphene_runtime_symlinks/libseng_tunnel_netif.so
-@@ -0,0 +1 @@
-+/home/encl-dev/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_tunnel_netif.so
++/home/encl-dev/client_enclave/lwip_based_client_lib/build/dtls_tunnel_netif/src/libseng_ossl_double_tunnel_netif.so
 \ No newline at end of file
 diff --git a/graphene_runtime_symlinks/libsgx_uae_service.so b/graphene_runtime_symlinks/libsgx_uae_service.so
 new file mode 120000
