@@ -253,7 +253,18 @@ for Graphene-SGX w/o SENG (aka "pure"):
 * $./iperf_pure_test.bash
 
 ####cURL
-*todo*
+The demo script fetches the root page of https://www.example.com.
+$docker-compose run --user encl-dev seng-runtime
+$cd ~/benchmarking/curl/
+
+for SENG:
+* ensure SENG server is running
+* $./curl_seng_test.bash
+
+for pure:
+* $./curl_pure_test.bash
+
+note: currently only IPv4 ('-4') is supported
 
 ####Telnet
 *todo*

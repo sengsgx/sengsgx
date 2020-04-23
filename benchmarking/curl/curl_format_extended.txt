@@ -1,0 +1,1 @@
+%{url_effective};%{time_total};%{size_download};%{speed_download};%{time_appconnect};%{time_connect};%{time_pretransfer};%{time_redirect};%{time_starttransfer};%{time_namelookup}\n

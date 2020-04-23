@@ -1,0 +1,1 @@
+%{url_effective};%{time_total};%{size_download}\n
