@@ -1,12 +1,4 @@
 #!/bin/bash
-pushd ~/sgx-ra-tls/
-SGX_MODE=HW make openssl/libnonsdk-ra-attester.a || exit 1
-popd
-
-pushd ~/client_enclave/lwip_based_client_lib/build/
-SGX_MODE=HW make -j4 || exit 1
-popd
-
 GRAPHENE=~/sgx-ra-tls/deps/graphene/
 BIN=~/benchmarking/iperf-3.1.3/build/bin/iperf3
 NAME=`basename "${BIN}"_pure`

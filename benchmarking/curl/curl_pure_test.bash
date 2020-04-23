@@ -1,12 +1,4 @@
 #!/bin/bash
-pushd ~/sgx-ra-tls/
-SGX_MODE=HW make openssl/libnonsdk-ra-attester.a || exit 1
-popd
-
-pushd ~/client_enclave/lwip_based_client_lib/build/
-SGX_MODE=HW make -j4 || exit 1
-popd
-
 GRAPHENE=~/sgx-ra-tls/deps/graphene/
 BIN=~/benchmarking/curl-7.47.0/build/src/curl
 NAME=`basename "${BIN}"_pure`
