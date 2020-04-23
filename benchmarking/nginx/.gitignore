@@ -1,0 +1,4 @@
+*.manifest.sgx
+*.sig
+*.token
+results/

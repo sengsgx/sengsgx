@@ -154,7 +154,9 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 	$cmake .. -DSGX_MODE=HW -DCMAKE_BUILD_TYPE=RELEASE
 	$make
 
-4. *TODO*: demo/bench app(s) with instructions for Graphene symlinks, manifest, etc.
+*NOTE*: by default, SENG runtime is built w/o auto-nat/port shadowing support, i.e., server sockets are only reachable via the Enclave IP and NAT rules have to be manually added. To enable auto-nat, additionally define "SENG_AUTO_NAT":
+	$cmake .. -DSGX_MODE=HW -DCMAKE_BUILD_TYPE=RELEASE -DSENG_AUTO_NAT=true
+	$make
 
 
 ##SENG SDK
@@ -205,6 +207,8 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 *NOTE2*: you should only connect 1 enclave at once to the SENG server to avoid potential issues (cf. corresponding TODO entry)
 
 ##SENG Runtime
+*NOTE*: In rare cases the shutdown process crashes with a 0x0 or SEGFAULT signal spam; we have not yet figured out why it happens sometimes; (might be fixed in newer Graphene versions where several race conditions/bugs got fixed)
+
 ###Demo App
 What it does:
 * connects to 192.168.178.45:8391/tcp
@@ -270,8 +274,46 @@ note: currently only IPv4 ('-4') is supported
 *todo*
 
 ####NGINX
-*todo*
+The demo script runs NGINX inside Graphene-SGX and makes it expose an HTTP server on port 4711/tcp. HTTPS support is included in the config files, but commented out. It requires a server key pair. Note that Graphene-SGX w/o SENG ("pure") currently does not seem to support NGINX with HTTPS.
 
+$docker-compose run --user encl-dev seng-runtime
+$cd ~/benchmarking/nginx/
+
+for pure:
+* NGINX will be reachable under 192.168.178.45:4711/tcp
+* $./nginx_pure_test.bash
+
+for SENG (default)
+* NGINX will be reachable via its assigned Enclave IP (cf. SENG server output) under port 4711.
+* ensure SENG server is running
+* $./nginx_seng_test.bash
+
+for SENG (with enabled auto-NAT/port shadowing):
+*TODO*
+
+Connecting from host to..
+..pure NGINX:
+use port 4711/tcp and IP 192.168.178.45 (cf. respective NGINX configuration file)
+$netcat 192.168.178.45 4711
+
+..SENG NGINX (default):
+use port 4711/tcp and the enclave IP assigned by the SENG server, probably 192.168.28.2
+$netcat 192.168.28.2 4711
+
+..SENG NGINX (auto-nat/shadowing):
+*TODO*
+
+In all cases you are now connected to NGINX and can issue an HTTP request:
+[from netcat]
+GET / HTTP/1.0\n
+\n
+
+to receive the NGINX demo page as result.
+
+Alternatively the (stripped) bench script bench_with_wrk2.bash can be used which is based on wrk2, or wrk2 can be used directly, e.g.,
+	./wrk --threads 2 --connections 100 --duration "10s" --rate <rate> --latency http://<ip>:4711/
+
+*NOTE*: NGINX running under the SENG Runtime currently does not correctly handle ctrl+C for shutdown. It has to be killed instead. (cf. todo)
 
 ##SENG SDK
 ###Demo App
@@ -335,8 +377,9 @@ you are now connected to NGINX and can issue an HTTP request:
 GET / HTTP/1.0\n
 \n
 
-and receive the NGINX demo page as result.
+to receive the NGINX demo page as result.
 
+wrk2 can be used to benchmark SENG NGINX (cf. benchmarking/ directory).
 
 
 #TODOs
@@ -354,6 +397,14 @@ and receive the NGINX demo page as result.
 * *CAUTION*: the SENG Server currently can have problems handling multiple Enclaves, because its current use of SO_REUSEPORT causes problems if newly connecting Enclaves are not bound to the current, fresh welcome socket by the kernel; cf. discussion in "SengServer_OpenSSL.cpp" for fixing it in a future version;
 * change that the 2nd SENG server tunnel always uses 4711
 * offer instructions for an alternative container variant without "host" networking mode
+* provide option to run w/o shadowing server
+* make IP(s) of shadowing server configurable
+
+##runtime
+* migrate to newer Graphene-SGX version
+* remove SENG-dependencies from "pure" manifest files
+* don't link shadow socket files if auto-nat/listen shadowing is disabled
+* fix NGINX termination
 
 ##sdk
 * FIX: currently SDK and PSW are installed inside the container, i.e., on restarts/reinstantiation, both are gone again; temporary work-arounded by adding the option to cause a direct re-install on container session start if it has been compiled before

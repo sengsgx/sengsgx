@@ -40,7 +40,8 @@ echo "Configuring NGINX"
         --with-http_ssl_module --with-http_v2_module \
         --prefix=`pwd`/build || exit 1
 echo "Compiling and installing NGINX"
-make -j`nproc` && make install || exit 1
+make -j`nproc` && make install && \
+        ln -s ../../../nginx/conf/nginx_{seng,pure_and_native}.conf build/conf/ || exit 1
 popd
 
 # WRK2

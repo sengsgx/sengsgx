@@ -139,7 +139,9 @@ add_library(seng_ossl_double_onload
         ${PROTO_SRCS} ${PROTO_HDRS}
         )
 
-target_compile_definitions(seng_ossl_double_onload PRIVATE ENABLE_LISTEN_MECHANISM)
+if (SENG_AUTO_NAT)
+    target_compile_definitions(seng_ossl_double_onload PRIVATE ENABLE_LISTEN_MECHANISM)
+endif()
 
 target_link_libraries(seng_ossl_double_onload PRIVATE lwip seng_ossl_double_tunnel_netif)
 target_link_libraries(seng_ossl_double_onload PRIVATE protobuf::libprotobuf)
@@ -168,10 +170,17 @@ add_library(seng_ossl_double_onload_finegrained_mbench
         ${PROTO_SRCS} ${PROTO_HDRS}
         )
 
-target_compile_definitions(seng_ossl_double_onload_finegrained_mbench PRIVATE ENABLE_LISTEN_MECHANISM
-                                              PRIVATE MEASURE_NETIF_SETUP_TIME
-                                              PRIVATE MEASURE_FINE_GRAINED_SETUP_TIME
-                                              PRIVATE MEASURE_LISTEN_TIME)
+if (SENG_AUTO_NAT)
+        target_compile_definitions(seng_ossl_double_onload_finegrained_mbench PRIVATE ENABLE_LISTEN_MECHANISM
+                          PRIVATE MEASURE_NETIF_SETUP_TIME
+                          PRIVATE MEASURE_FINE_GRAINED_SETUP_TIME
+                          PRIVATE MEASURE_LISTEN_TIME)
+else()
+        target_compile_definitions(seng_ossl_double_onload_finegrained_mbench
+                          PRIVATE MEASURE_NETIF_SETUP_TIME
+                          PRIVATE MEASURE_FINE_GRAINED_SETUP_TIME
+                          PRIVATE MEASURE_LISTEN_TIME)
+endif()
 
 target_link_libraries(seng_ossl_double_onload_finegrained_mbench PRIVATE lwip seng_mbench_ossl_double_tunnel_netif)
 target_link_libraries(seng_ossl_double_onload_finegrained_mbench PRIVATE protobuf::libprotobuf)
