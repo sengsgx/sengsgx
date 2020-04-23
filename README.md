@@ -221,7 +221,25 @@ $./run_demoapp.bash
 
 
 ###Real-world Apps
-*TODO*
+Prepare the apps:
+$cd seng_runtime/
+$docker-compose run --user encl-dev seng-runtime
+$cd ~/benchmarking/
+$./download_bench_progs.bash
+$./build_bench_progs.bash
+
+
+####iPerf3
+*todo*
+####cURL
+*todo*
+
+####Telnet
+*todo*
+
+####NGINX
+*todo*
+
 
 ##SENG SDK
 ###Demo App
