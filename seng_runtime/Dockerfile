@@ -27,7 +27,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gdb net-tools \
         libpcre3-dev libexpat1-dev \
         netcat iperf3 iproute iptables \
-        telnet tzdata
+        telnet tzdata \
+        unzip
 
 ENV user=${username}
 CMD /home/${user}/client_enclave/bootup.bash
