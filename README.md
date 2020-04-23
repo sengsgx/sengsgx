@@ -17,6 +17,14 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 2. patch sgx-ra-tls:
 	$cd sgx-ra-tls/
 	$patch -p1 < ../patches/sgx-ra-tls_seng_changes.patch
+
+*NOTE*: By default Graphene-SGX is built without(!) the experimental switchless/exitless O/ECALL pull request, as it can be instable and cause bugs/crashes in Graphene. There are 2 options to enable it:
+(a) remove the # in line 120 of the patched sgx-ra-tls/build.sh file
+(b) after compiling sgx-ra-tls [cf. step 8, inside base-container]:
+	$cd ~/sgx-ra-tls/deps/graphene/
+	$patch -p1 < ../../fixed_exitless_syscalls_pr405.patch
+	$make SGX=1
+
 3. add your own Intel Developer SPID to ra_tls_options.c:
 	$vim sgx-ra-tls/ra_tls_options.c
 4. add quote_type in ra_tls_options.c:
@@ -137,7 +145,7 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 	$cd seng_runtime/
 	$docker-compose build
 
-3. build SENG server:
+3. build SENG runtime:
 	$cd seng_runtime/
 	$docker-compose run --user encl-dev seng-runtime
 	$cd ~/client_enclave/lwip_based_client_lib/
@@ -310,6 +318,7 @@ and receive the NGINX demo page as result.
 #TODOs
 * localhost destination IPs through(!) tunnel are not yet working, because currently lwIP interprets them internally and refuses them;
 * make IPs and Ports easier configurable at SENG Server, Runtime and SDK
+* SENG currently does not make use of lwIP's IPv6 support yet
 
 ##sgx-ra-tls
 * simplfy configuration of subscription key (note: newer version of sgx-ra-tls now also support the new IAS authentication method)

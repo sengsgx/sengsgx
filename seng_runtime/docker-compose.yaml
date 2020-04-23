@@ -10,10 +10,10 @@ services:
                 network_mode: "host"
                 build: .
                 ports:
-                    # for nginx
+                    # for nginx http/s
                     - "4711:4711/tcp"
                     - "3443:3443/tcp"
-                    #TODO
+                    # helper tool for server socket shadowing/auto-nat
                     - "2834:2834/tcp"
                 devices:
                         - "/dev/isgx:/dev/isgx"

@@ -644,7 +644,7 @@ namespace seng {
         } catch(std::exception &e) {
             netif_set_link_down(own_netif_ptr);
             std::cerr << e.what() << std::endl;
-            //own_netif_ptr->state = nullptr;
+            own_netif_ptr->state = nullptr;
             return ERR_IF;
         }
        
@@ -681,7 +681,7 @@ namespace seng {
         if (s == nullptr) {
             netif_set_link_down(own_netif_ptr);
             std::cerr << "Failed to spawn netif thread!" << std::endl;
-            //own_netif_ptr->state = nullptr;
+            own_netif_ptr->state = nullptr;
             return ERR_IF;
         }
         

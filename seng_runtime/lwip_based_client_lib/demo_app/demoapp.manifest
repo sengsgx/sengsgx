@@ -26,9 +26,9 @@ fs.mount.bin.uri = file:/bin
 #fs.mount.usrbin.path = /usr/bin
 #fs.mount.usrbin.uri = file:/usr/bin
 
-sgx.enclave_size = 1024M
-sys.brk.size = 32M
-sys.stack.size = 8M
+sgx.enclave_size = 256M
+sys.brk.size = 8M
+sys.stack.size = 4M
 
 sgx.thread_num = 5
 

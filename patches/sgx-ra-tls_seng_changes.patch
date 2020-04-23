@@ -102,7 +102,7 @@ index b4d3e3d..a053128 100644
 +
 +
 diff --git a/build.sh b/build.sh
-index edd8446..5729326 100755
+index edd8446..cf5db49 100755
 --- a/build.sh
 +++ b/build.sh
 @@ -40,7 +40,8 @@ if [ ! -d mbedtls ] ; then
@@ -163,7 +163,7 @@ index edd8446..5729326 100755
 -    git checkout e01769337c38f67d7ccd7a7cadac4f9df0c6c65e
 +    git checkout -b my_changes 58cb88d2c187358aad428b100d1ff444173e1a2b
 +    patch -p1 < ../../graphene_patches.patch
-+    patch -p1 < ../../fixed_exitless_syscalls_pr405.patch
++    #patch -p1 < ../../fixed_exitless_syscalls_pr405.patch
 +    
 +    git submodule update --init --recursive
 +
@@ -2530,22 +2530,6 @@ index 0000000..5c2c604
 @@ -0,0 +1 @@
 +/home/encl-dev/client_enclave/lwip_based_client_lib/build/dtls_tunnel_netif/src/libapp_bench_onload.so
 \ No newline at end of file
-diff --git a/graphene_runtime_symlinks/libapr-1.so.0 b/graphene_runtime_symlinks/libapr-1.so.0
-new file mode 120000
-index 0000000..71ebee0
---- /dev/null
-+++ b/graphene_runtime_symlinks/libapr-1.so.0
-@@ -0,0 +1 @@
-+/home/encl-dev/benchmarking/httpd-2.4.18/srclib/apr/.libs/libapr-1.so.0
-\ No newline at end of file
-diff --git a/graphene_runtime_symlinks/libaprutil-1.so.0 b/graphene_runtime_symlinks/libaprutil-1.so.0
-new file mode 120000
-index 0000000..4d63a6f
---- /dev/null
-+++ b/graphene_runtime_symlinks/libaprutil-1.so.0
-@@ -0,0 +1 @@
-+/home/encl-dev/benchmarking/httpd-2.4.18/srclib/apr-util/.libs/libaprutil-1.so.0
-\ No newline at end of file
 diff --git a/graphene_runtime_symlinks/libbsd.so.0 b/graphene_runtime_symlinks/libbsd.so.0
 new file mode 120000
 index 0000000..f85caa0
@@ -2596,11 +2580,11 @@ index 0000000..3d817f9
 \ No newline at end of file
 diff --git a/graphene_runtime_symlinks/libcurl.so b/graphene_runtime_symlinks/libcurl.so
 new file mode 120000
-index 0000000..d6a01fb
+index 0000000..fa729fc
 --- /dev/null
 +++ b/graphene_runtime_symlinks/libcurl.so
 @@ -0,0 +1 @@
-+/home/encl-dev/benchmarking/my_binary_curl/curl-curl-7_47_0/build/lib/libcurl.so
++/home/encl-dev/benchmarking/curl-7.47.0/build/lib/libcurl.so
 \ No newline at end of file
 diff --git a/graphene_runtime_symlinks/libdl.so.2 b/graphene_runtime_symlinks/libdl.so.2
 new file mode 120000
@@ -3538,6 +3522,9 @@ index ecee76a..d225ce2 100644
 +    mbedtls_x509_crt_free(&crt);
 +    return 1;
  }
+diff --git a/middlebox_cert.pem b/middlebox_cert.pem
+new file mode 100755
+index 0000000..e69de29
 diff --git a/my_etc_files/group b/my_etc_files/group
 new file mode 120000
 index 0000000..3075d99
