@@ -236,9 +236,22 @@ $cd ~/benchmarking/
 $./download_bench_progs.bash
 $./build_bench_progs.bash
 
-
 ####iPerf3
-*todo*
+The demo script expects an iPerf3 server listening on 192.168.178.45 (at the host):
+$sudo apt install iperf3
+$iperf3 --server --bind 192.168.178.45
+
+Run client:
+$docker-compose run --user encl-dev seng-runtime
+$cd ~/benchmarking/iperf3/
+
+for SENG:
+* ensure SENG server is running
+* $./iperf_seng_test.bash
+
+for Graphene-SGX w/o SENG (aka "pure"):
+* $./iperf_pure_test.bash
+
 ####cURL
 *todo*
 
