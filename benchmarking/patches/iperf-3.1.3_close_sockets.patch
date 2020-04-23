@@ -1,0 +1,90 @@
+diff --git a/src/iperf_client_api.c b/src/iperf_client_api.c
+index f19f6f1..41c86c0 100644
+--- a/src/iperf_client_api.c
++++ b/src/iperf_client_api.c
+@@ -324,9 +324,27 @@ iperf_client_end(struct iperf_test *test)
+     if (iperf_set_send_state(test, IPERF_DONE) != 0)
+         return -1;
+ 
++    /* Close control socket */
++    if (test->ctrl_sck)
++        close(test->ctrl_sck);
++
+     return 0;
+ }
+ 
++void
++iperf_close_all_sockets(struct iperf_test *test) {
++    struct iperf_stream *sp;
++
++    /* Close all stream sockets */
++    SLIST_FOREACH(sp, &test->streams, streams) {
++        close(sp->socket);
++    }
++
++    /* Close control socket */
++    if (test->ctrl_sck)
++        close(test->ctrl_sck);
++}
++
+ 
+ int
+ iperf_run_client(struct iperf_test * test)
+@@ -377,6 +395,7 @@ iperf_run_client(struct iperf_test * test)
+ 	if (result > 0) {
+ 	    if (FD_ISSET(test->ctrl_sck, &read_set)) {
+  	        if (iperf_handle_message_client(test) < 0) {
++                    iperf_close_all_sockets(test);
+ 		    return -1;
+ 		}
+ 		FD_CLR(test->ctrl_sck, &read_set);
+@@ -399,12 +418,16 @@ iperf_run_client(struct iperf_test * test)
+ 
+ 	    if (test->reverse) {
+ 		// Reverse mode. Client receives.
+-		if (iperf_recv(test, &read_set) < 0)
++		if (iperf_recv(test, &read_set) < 0) {
++                    iperf_close_all_sockets(test);
+ 		    return -1;
++                }
+ 	    } else {
+ 		// Regular mode. Client sends.
+-		if (iperf_send(test, &write_set) < 0)
++		if (iperf_send(test, &write_set) < 0) {
++                    iperf_close_all_sockets(test);
+ 		    return -1;
++                }
+ 	    }
+ 
+             /* Run the timers. */
+@@ -428,8 +451,10 @@ iperf_run_client(struct iperf_test * test)
+ 		test->done = 1;
+ 		cpu_util(test->cpu_util);
+ 		test->stats_callback(test);
+-		if (iperf_set_send_state(test, TEST_END) != 0)
++		if (iperf_set_send_state(test, TEST_END) != 0) {
++                    iperf_close_all_sockets(test);
+ 		    return -1;
++                }
+ 	    }
+ 	}
+ 	// If we're in reverse mode, continue draining the data
+@@ -438,8 +463,16 @@ iperf_run_client(struct iperf_test * test)
+ 	// and gets blocked, so it can't receive state changes
+ 	// from the client side.
+ 	else if (test->reverse && test->state == TEST_END) {
+-	    if (iperf_recv(test, &read_set) < 0)
+-		return -1;
++	    if (iperf_recv(test, &read_set) < 0) {
++                /* NOTE: for some reasons there seems to be a race where lwIP sometimes returns an "endpoint not connected" error
++                         and caused this to `return -1;' which caused the Server to get stuck in recv() on the control socket;
++                         we could simply close the control socket in this case, but then we would loose the result for this test iteration;
++                         so just ignore the error in case it occurs (rarely) until bug/unexpected behaviour is found in lwIP;
++                         or maybe it's a regular race between receive and RST message also available in regular net stacks? */
++                //fprintf(stderr, "Failed at draining data after finish\n");
++                //fflush(stderr);
++		//return -1;
++            }
+ 	}
+     }
+ 
