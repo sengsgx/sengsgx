@@ -1,0 +1,40 @@
+diff --git a/crypto/bio/bss_dgram.c b/crypto/bio/bss_dgram.c
+index 6dfcc9b..e842433 100644
+--- a/crypto/bio/bss_dgram.c
++++ b/crypto/bio/bss_dgram.c
+@@ -309,11 +309,18 @@ static int dgram_read(BIO *b, char *out, int outl)
+         dgram_adjust_rcv_timeout(b);
+         if (data->peekmode)
+             flags = MSG_PEEK;
+-        ret = recvfrom(b->num, out, outl, flags,
+-                       BIO_ADDR_sockaddr_noconst(&peer), &len);
+ 
+-        if (!data->connected && ret >= 0)
+-            BIO_ctrl(b, BIO_CTRL_DGRAM_SET_PEER, 0, &peer);
++        if (data->connected)
++            ret = recv(b->num, out, outl, flags);
++        else {
++            ret = recvfrom(b->num, out, outl, flags,
++                           BIO_ADDR_sockaddr_noconst(&peer), &len);
++            if (ret >= 0)
++                BIO_ctrl(b, BIO_CTRL_DGRAM_SET_PEER, 0, &peer);
++        }
++
++//        if (!data->connected && ret >= 0)
++//            BIO_ctrl(b, BIO_CTRL_DGRAM_SET_PEER, 0, &peer);
+ 
+         BIO_clear_retry_flags(b);
+         if (ret < 0) {
+diff --git a/include/openssl/dtls1.h b/include/openssl/dtls1.h
+index f4769f8..3816441 100644
+--- a/include/openssl/dtls1.h
++++ b/include/openssl/dtls1.h
+@@ -48,7 +48,7 @@ extern "C" {
+ # define DTLS1_TMO_READ_COUNT                      2
+ # define DTLS1_TMO_WRITE_COUNT                     2
+ 
+-# define DTLS1_TMO_ALERT_COUNT                     12
++# define DTLS1_TMO_ALERT_COUNT                     3
+ 
+ #ifdef  __cplusplus
+ }
