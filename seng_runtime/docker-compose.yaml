@@ -26,4 +26,5 @@ services:
                     - ../benchmarking:/home/encl-dev/benchmarking
                     - ../seng_server/double_tunnel_openssl/src/seng.proto:/home/encl-dev/seng_server/double_tunnel_openssl/src/seng.proto
                     - ../seng_server/srv_cert.pem:/home/encl-dev/sgx-ra-tls/middlebox_cert.pem
+                    - ../tools/cli_socket_blocker:/home/encl-dev/tools/cli_socket_blocker
 

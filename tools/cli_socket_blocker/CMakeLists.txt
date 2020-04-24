@@ -14,7 +14,7 @@ find_package(Protobuf REQUIRED) # the C++ one
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS seng.proto)
 
 if (NOT DEFINED SGX_SDK)
-    set(SGX_SDK ~/sgxsdk)
+    set(SGX_SDK /opt/intel/sgxsdk)
 endif()
 set(SGX_ARCH x64)
 set(SGX_MODE SIM CACHE STRING "SGX mode: SIM or HW") # SGX mode: sim, hw
@@ -24,7 +24,7 @@ set(SGX_BUILD DEBUG CACHE STRING "Build: DEBUG, PRERELEASE or RELEASE")
 include (cmake/ConfigSGX.cmake)
 
 add_executable(cli_sock_blocker
-        CliSockBlocker.cpp CliSockBlocker.hpp
+        CliSockBlocker.cpp
         SSLEngine.cpp SSLEngine.hpp
         ${PROTO_SRCS} ${PROTO_HDRS}
         )

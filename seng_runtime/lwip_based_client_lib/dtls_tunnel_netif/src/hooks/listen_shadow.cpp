@@ -13,6 +13,10 @@
 
 
 namespace seng {
+    // TODO: use the dynamically received GW IP instead
+    const char *shadow_srv_ip {"192.168.28.1"};
+
+
     // copied from ClientSocketShadower.cpp
     optional<uint32_t>
     receive_protobuf_message(int sockfd, std::vector<unsigned char> &buf) {
@@ -137,7 +141,7 @@ namespace seng {
             .sin_port = lwip_htons(2409),
             //.sin_addr = { tunnel_netif.gw.addr },
         };
-        inet_aton("192.168.178.1", &shdw_srv.sin_addr);
+        inet_aton(shadow_srv_ip, &shdw_srv.sin_addr);
         
         if (lwip_connect(fd, (struct sockaddr *)&shdw_srv, sizeof(shdw_srv)) < 0) {
 #ifdef DEBUG_PRINT
@@ -248,7 +252,7 @@ namespace seng {
             .sin_port = lwip_htons(2409),
             //.sin_addr = { tunnel_netif.gw.addr },
         };
-        inet_aton("192.168.178.1", &shdw_srv.sin_addr);
+        inet_aton(shadow_srv_ip, &shdw_srv.sin_addr);
         
 #ifdef DEBUG_PRINT
         std::cout << "listen mech.: Trying to notify close" << std::endl;
