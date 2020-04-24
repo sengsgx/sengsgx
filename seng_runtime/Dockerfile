@@ -30,6 +30,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         telnet tzdata \
         unzip
 
+# for client socket shadower tool
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libmbedtls10 libmbedtls-dev
+
 ENV user=${username}
 CMD /home/${user}/client_enclave/bootup.bash
 
