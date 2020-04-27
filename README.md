@@ -72,20 +72,28 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 	$cd build/
 	$ln -s ../../srv_key.pem .
 	$ln -s ../../srv_cert.pem .
-4. configure SENG network interface:
- 	Options:
- 	(a) from host system (if running "host" networking mode in server container)
-		$cd seng_server
-		$./setup_seng_interface.bash
-	(b) from inside server container [*TODO* requires installing iproute2 inside container]
-		$sudo ~/seng_server/setup_seng_interface.bash
-	
-	note: if running "host" networking mode, (b) might run into nftables-iptables issues;
 
-	*TODO* TUN device subnetwork must not collide with existing ones of the server;
-	*TODO* alternatively might consider removing "host" networking mode and add port binding/forwarding to container
-5. configure forwarding rules:
-	*TODO* iptables rules to allow forwarding traffic between TUN interface and in/out host network interface(s)
+4. configure SENG network interface ("tunFA") from host, or from server container:
+	$cd seng_server
+	$./setup_seng_interface.bash
+
+	By default the MTU is set to 1432 and the interface gets the following two local IP addresses: 192.168.28.1/24 and 172.16.28.1/24, following the sample Enclave IP subnetworks. Please adapt to your needs.
+
+	The setup can be removed via ./teardown_seng_interface.bash
+5. configure firewall rules:
+	(1) If the FORWARD default rule is DROP, allow packet forwarding from/to Enclave Subnetworks:
+
+	$sudo iptables -A FORWARD -i tunFA -o eno1 --src 192.168.28.0/24 -j ACCEPT
+	$sudo iptables -A FORWARD -i tunFA -o eno1 --src 172.16.28.0/24 -j ACCEPT
+	$sudo iptables -A FORWARD -i eno1 -o tunFA --dst 192.168.28.0/24 -j ACCEPT
+	$sudo iptables -A FORWARD -i eno1 -o tunFA --dst 172.16.28.0/24 -j ACCEPT
+
+	(2) For DNS APIs like getaddrinfo(), the SENG Runtime and SDK currently use 8.8.8.8 as DNS Server through the secure tunnel. For this to work, NAT has to be enabled for Enclave packets to external clients:
+
+	$sudo iptables -t nat -A POSTROUTING --src 192.168.28.0/24 -o eno1 -j MASQUERADE
+	$sudo iptables -t nat -A POSTROUTING --src 172.16.28.0/24 -o eno1 -j MASQUERADE
+
+*NOTE*: For both cases, adapt "eno1" to the name of your network interface(s). Also cf. comments in setup_seng_interface.bash and teardown_seng_interface.bash for the commands.
 
 6. Optional: Generate Sqlite3 demo database:
 	$cd ~/seng_server/double_tunnel_openssl/
@@ -478,3 +486,6 @@ wrk2 can be used to benchmark SENG NGINX (cf. benchmarking/ directory).
 * FIX: currently SDK and PSW are installed inside the container, i.e., on restarts/reinstantiation, both are gone again; temporary work-arounded by adding the option to cause a direct re-install on container session start if it has been compiled before
 * SENG SDK does not yet gracefully shutdown the enclave, but might hang on shutdown; this affects the DemoApp and SENG NGINX at the moment; the DemoApp can be terminated via ctrl+C, while NGINX currently has to be killed; -- we need to add a notification mechanism to wakeup the blocking recv/read() call of the tunnel thread and shutdown the lwIP thread before destroying the enclave;
 * add support to SENG NGINX to change SENG Server IP+Port via NGINX config file
+
+##DNS
+* at the moment the DNS server used by lwIP for standard APIs, e.g., getaddrinfo(), is hard-coded in the SENG runtime/sdk startup code (to 8.8.8.8)

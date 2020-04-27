@@ -49,7 +49,9 @@ static void init_and_add_tunnel_module(void *arg) {
 
 
 	ip_addr_t name_server {};
-	IP_ADDR4(&name_server, 127, 0, 0, 1);
+    // TODO: adapt to your needs, e.g., to internal resolver
+    // TODO: make this dynamic in the future
+	IP_ADDR4(&name_server, 8, 8, 8, 8);
 	dns_setserver(0, &name_server);
 
 	// wakeup main thread
