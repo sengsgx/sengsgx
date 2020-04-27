@@ -20,6 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libsqlite3-dev \
         sqlite3
 
+# for auto-nat/shadowing
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        iptables
+
 # TODO: remove after ShadowServer migrated to OpenSSL
 RUN apt-get update && apt-get install -y --no-install-recommends \ 
         libmbedtls10 \

@@ -241,7 +241,7 @@ $./download_bench_progs.bash
 $./build_bench_progs.bash
 
 ####iPerf3
-The demo script expects an iPerf3 server listening on 192.168.178.45 (at the host):
+The test script expects an iPerf3 server listening on 192.168.178.45 (at the host):
 $sudo apt install iperf3
 $iperf3 --server --bind 192.168.178.45
 
@@ -257,7 +257,7 @@ for Graphene-SGX w/o SENG (aka "pure"):
 * $./iperf_pure_test.bash
 
 ####cURL
-The demo script fetches the root page of https://www.example.com.
+The test script fetches the root page of https://www.example.com.
 $docker-compose run --user encl-dev seng-runtime
 $cd ~/benchmarking/curl/
 
@@ -271,10 +271,34 @@ for pure:
 note: currently only IPv4 ('-4') is supported
 
 ####Telnet
-*todo*
+The test script runs Telnet in IPv4 mode using the arguments passed to the script.
+$docker-compose run --user encl-dev seng-runtime
+$cd ~/benchmarking/telnet/
+
+
+for SENG:
+* ensure SENG server is running
+* $./telnet_seng_test.bash <telnet_args>
+
+for pure:
+* $./telnet_pure_test.bash <telnet_args>
+
+examples:
+* Telnet login: ./telnet_seng_test.bash -l <user> <telnet_srv_ip> 23
+* HTTP query:   ./telnet_seng_test.bash www.example.com 80
+GET / HTTP/1.0\n
+\n
+
+Note: we only got 404 back from www.example.com when using netcat or telnet to issue a direct HTTP request to it, but it shows that sending the HTTP query and receiving the reply works.
+
+*NOTEs*:
+* IPv4 is enforced at the moment
+* at the moment the target port has to be explicitly defined, because of lwIP's limited service-port resolution (will otherwise pick port 0; cf. todos)
+* Graphene-SGX buffers messages before sending to stdout/stderr to reduce overhead; however, this is a problem, e.g., when running telnet without any arguments as it will not flush stdout and therefore not display the UI messages to the user; the output works fine for the HTTP example above
+
 
 ####NGINX
-The demo script runs NGINX inside Graphene-SGX and makes it expose an HTTP server on port 4711/tcp. HTTPS support is included in the config files, but commented out. It requires a server key pair. Note that Graphene-SGX w/o SENG ("pure") currently does not seem to support NGINX with HTTPS.
+The test script runs NGINX inside Graphene-SGX and makes it expose an HTTP server on port 4711/tcp. HTTPS support is included in the config files, but commented out. It requires a server key pair. Note that Graphene-SGX w/o SENG ("pure") currently does not seem to support NGINX with HTTPS.
 
 $docker-compose run --user encl-dev seng-runtime
 $cd ~/benchmarking/nginx/
