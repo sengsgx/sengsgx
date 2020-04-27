@@ -232,7 +232,7 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struc
                 
                 // Check system events
                 assert(real_select != nullptr);
-                int sys_ret = real_select(last_sys_fd,
+                int sys_ret = real_select(last_sys_fd+1,
                                           (readfds == nullptr ? nullptr : &sys_read_cpy),
                                           (writefds == nullptr ? nullptr : &sys_write_cpy),
                                           (exceptfds == nullptr ? nullptr : &sys_except_cpy),
