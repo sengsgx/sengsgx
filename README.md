@@ -183,7 +183,7 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 	$cd ~/seng_sdk/
 	$./build_patched_sdkpsw_sgxssl.bash
 
-5. generate enclave signing key pair with exponent 3 for demo app and Nginx:
+5. generate enclave signing key pair with exponent 3 for demo app and NGINX:
 	$cd seng_sdk/enclave/app/src/
 	$openssl genrsa -out app_enclave_private.pem -3 3072
 	$openssl rsa -in app_enclave_private.pem -pubout -out app_enclave_public.pem
@@ -306,7 +306,7 @@ Note: we only got 404 back from www.example.com when using netcat or telnet to i
 * Graphene-SGX buffers messages before sending to stdout/stderr to reduce overhead; however, this is a problem, e.g., when running telnet without any arguments as it will not flush stdout and therefore not display the UI messages to the user; the output works fine for the HTTP example above
 
 
-####NGINX
+####NGINX (default, without auto-nat)
 The test script runs NGINX inside Graphene-SGX and makes it expose an HTTP server on port 4711/tcp. HTTPS support is included in the config files, but commented out. It requires a server key pair. Note that Graphene-SGX w/o SENG ("pure") currently does not seem to support NGINX with HTTPS.
 
 $docker-compose run --user encl-dev seng-runtime
@@ -316,13 +316,10 @@ for pure:
 * NGINX will be reachable under 192.168.178.45:4711/tcp
 * $./test_pure_nginx.bash
 
-for SENG (default)
+for SENG
 * NGINX will be reachable via its assigned Enclave IP (cf. SENG server output) under port 4711.
 * ensure SENG server is running
 * $./test_seng_nginx.bash
-
-for SENG (with enabled auto-NAT/port shadowing):
-*TODO*
 
 Connecting from host to..
 ..pure NGINX:
@@ -333,10 +330,7 @@ $netcat 192.168.178.45 4711
 use port 4711/tcp and the enclave IP assigned by the SENG server, probably 192.168.28.2
 $netcat 192.168.28.2 4711
 
-..SENG NGINX (auto-nat/shadowing):
-*TODO*
-
-In all cases you are now connected to NGINX and can issue an HTTP request:
+In both cases you are now connected to NGINX and can issue an HTTP request:
 [from netcat]
 GET / HTTP/1.0\n
 \n
@@ -347,6 +341,39 @@ Alternatively the (stripped) bench script bench_with_wrk2.bash can be used which
 	./wrk --threads 2 --connections 100 --duration "10s" --rate <rate> --latency http://<ip>:4711/
 
 *NOTE*: NGINX running under the SENG Runtime currently does not correctly handle ctrl+C for shutdown. It has to be killed instead. (cf. todo)
+
+
+
+####NGINX with auto-nat/shadowing enabled
+The NGINX runtime test can also be executed when auto-nat/shadowing is enabled in the SENG Runtime. The auto-nat/shadowing will cause DNAT rules to be auto-added by the SENG Server to make NGINX also reachable under 192.168.178.45. In a real setup, the ShadowServer code can be slightly adapted to make NGINX reachable via the gateway IP, or the actual client host IP (in addition to the Enclave IP) instead.
+
+Preparation:
+1. ensure you built the SENG runtime with SENG_AUTO_NAT defined (cf. runtime build instructions)
+2. ensure you built the client socket blocker helper tool (cf. optional runtime build instructions)
+3. create "SENG_output" and "SENG_prerouting" chains in the host/server iptables "nat" table:
+	$sudo iptables -t nat -N SENG_output
+	$sudo iptables -t nat -N SENG_prerouting
+	$sudo iptables -t nat -A OUTPUT --dst 192.168.178.45 -p tcp --destination-port 4711 -j SENG_output
+	$sudo iptables -t nat -A PREROUTING --dst 192.168.178.45 -p tcp --destination-port 4711 -j SENG_prerouting
+
+Running:
+1. ensure that the SENG Server is running and using port 12345, localhost
+2. run the auto-nat client helper tool; it is used to block the port in the host network stack, or refuse the shadowing if the requested host port is already in use:
+	$docker-compose run --user encl-dev seng-runtime
+	$cd ~/tools/cli_socket_blocker/build/
+	$./cli_sock_blocker
+3. run NGINX:
+	$docker-compose run --user encl-dev seng-runtime
+	$cd ~/benchmarking/nginx
+	$./nginx_seng_test.bash
+4. connect to NGINX:
+	(a) via the assigned Enclave IP (cf. server output) on port 4711/tcp
+	(b) via 192.168.178.45 on port 4711/tcp, for which DNAT forwarding rules have been auto-added
+
+*NOTE*: while support for removing auto-nat/shadowing rules on a server socket close is available, it is disabled at the moment; it would affect ongoing, established client sessions that were established through the server socket as well; remove them manually after each test run:
+	$sudo iptables -t nat -D SENG_output 1
+	$sudo iptables -t nat -D SENG_prerouting 1
+
 
 ##SENG SDK
 ###Demo App
@@ -439,6 +466,13 @@ wrk2 can be used to benchmark SENG NGINX (cf. benchmarking/ directory).
 * don't link shadow socket files if auto-nat/listen shadowing is disabled
 * fix NGINX termination
 * service-port resolution (telnet)
+
+##auto-nat/port shadowing
+* remove hard-coded ShadowServer IP and make it instead use the SENG tunnel interface IP(s)
+* add option to expose the server sockets either through the host IP or the gateway IP
+* finish implementation of and enable automatic cleanup of shadowing rules on a server socket close
+* add protocol description (cf. proto file for message formats)
+* add user/system access policy support in client helper tool
 
 ##sdk
 * FIX: currently SDK and PSW are installed inside the container, i.e., on restarts/reinstantiation, both are gone again; temporary work-arounded by adding the option to cause a direct re-install on container session start if it has been compiled before
