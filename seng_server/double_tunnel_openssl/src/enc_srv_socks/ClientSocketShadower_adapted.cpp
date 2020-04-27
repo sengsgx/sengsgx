@@ -406,7 +406,7 @@ namespace seng {
         
         // Create rule object
         struct in_addr only_for_our_setup_needed_middlebox_ip;
-        auto tmp = inet_aton("127.0.0.1", &only_for_our_setup_needed_middlebox_ip);
+        auto tmp = inet_aton("192.168.178.45", &only_for_our_setup_needed_middlebox_ip);
         assert(tmp != 0);
         ShadowRule rule { static_cast<in_port_t>(shadow_msg.port()),
             static_cast<uint8_t>(shadow_msg.proto()),
