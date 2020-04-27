@@ -158,6 +158,15 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 	$cmake .. -DSGX_MODE=HW -DCMAKE_BUILD_TYPE=RELEASE -DSENG_AUTO_NAT=true
 	$make
 
+4. Optional: Compile the client-side port blocker tool for auto-nat/port shadowing:
+	$cd seng_runtime/
+	$docker-compose run --user encl-dev seng-runtime
+	$cd ~/tools/cli_socket_blocker/
+	$mkdir build
+	$cd build/
+	$cmake .. -DSGX_MODE=HW -DCMAKE_BUILD_TYPE=RELEASE
+	$make
+
 
 ##SENG SDK
 1. fetch libraries:
