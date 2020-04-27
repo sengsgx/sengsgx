@@ -251,10 +251,10 @@ $cd ~/benchmarking/iperf3/
 
 for SENG:
 * ensure SENG server is running
-* $./iperf_seng_test.bash
+* $./test_seng_iperf.bash
 
 for Graphene-SGX w/o SENG (aka "pure"):
-* $./iperf_pure_test.bash
+* $./test_pure_iperf.bash
 
 ####cURL
 The test script fetches the root page of https://www.example.com.
@@ -263,10 +263,10 @@ $cd ~/benchmarking/curl/
 
 for SENG:
 * ensure SENG server is running
-* $./curl_seng_test.bash
+* $./test_seng_curl.bash
 
 for pure:
-* $./curl_pure_test.bash
+* $./test_pure_curl.bash
 
 note: currently only IPv4 ('-4') is supported
 
@@ -278,10 +278,10 @@ $cd ~/benchmarking/telnet/
 
 for SENG:
 * ensure SENG server is running
-* $./telnet_seng_test.bash <telnet_args>
+* $./test_seng_telnet.bash <telnet_args>
 
 for pure:
-* $./telnet_pure_test.bash <telnet_args>
+* $./test_pure_telnet.bash <telnet_args>
 
 examples:
 * Telnet login: ./telnet_seng_test.bash -l <user> <telnet_srv_ip> 23
@@ -305,12 +305,12 @@ $cd ~/benchmarking/nginx/
 
 for pure:
 * NGINX will be reachable under 192.168.178.45:4711/tcp
-* $./nginx_pure_test.bash
+* $./test_pure_nginx.bash
 
 for SENG (default)
 * NGINX will be reachable via its assigned Enclave IP (cf. SENG server output) under port 4711.
 * ensure SENG server is running
-* $./nginx_seng_test.bash
+* $./test_seng_nginx.bash
 
 for SENG (with enabled auto-NAT/port shadowing):
 *TODO*
@@ -429,6 +429,7 @@ wrk2 can be used to benchmark SENG NGINX (cf. benchmarking/ directory).
 * remove SENG-dependencies from "pure" manifest files
 * don't link shadow socket files if auto-nat/listen shadowing is disabled
 * fix NGINX termination
+* service-port resolution (telnet)
 
 ##sdk
 * FIX: currently SDK and PSW are installed inside the container, i.e., on restarts/reinstantiation, both are gone again; temporary work-arounded by adding the option to cause a direct re-install on container session start if it has been compiled before
