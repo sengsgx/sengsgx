@@ -25,24 +25,29 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 	$patch -p1 < ../../fixed_exitless_syscalls_pr405.patch
 	$make SGX=1
 
-3. add your own Intel Developer SPID to ra_tls_options.c:
+3. If you do not have an SPID and SubscriptionKey for the EPID-based Intel SGX Remote Attestation Service (IAS), yet, follow the [instructions at the bottom](#spid) to get them
+
+4. add your own Intel Developer SPID to ra_tls_options.c:
 	$vim sgx-ra-tls/ra_tls_options.c
-4. add quote_type in ra_tls_options.c:
+
+	e.g., if your SPID is 473BA3(...), add 0x47, 0x3B, 0xA3,(...)
+5. adapt quote_type in ra_tls_options.c:
 	$vim sgx-ra-tls/ra_tls_options.c
 	Options:
 	(a) SGX_LINKABLE_SIGNATURE
 	(b) SGX_UNLINKABLE_SIGNATURE
-5. add your own Intel Developer remote attestation subscription key to ias-ra.c:
+	The choice has to match your type of subscription for EPID-based remote attestation.
+6. add your own Intel Developer remote attestation subscription key to ias-ra.c:
 	$vim sgx-ra-tls/ias-ra.c
 	at line 228, replace the "YYY" with your subscription key
 
-6. replace UID for container user, e.g., with `id --user` (cf. %TODO in dockerfile):
+7. replace UID for container user, e.g., with `id --user` (cf. %TODO in dockerfile):
 	$vim base_container/Dockerfile
-7. build base container:
+8. build base container:
 	$cd base_container/
 	$docker-compose build
 	Note: will try to install headers of your host kernel version
-8. build sgx-ra-tls:
+9. build sgx-ra-tls:
 	$cd base_container/
 	$docker-compose run --user encl-dev base-container
 	$cd ~/sgx-ra-tls/
@@ -50,7 +55,7 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
 	$./build.sh graphene
 	$make
 
-9. generate RSA key pair for server.
+10. generate RSA key pair for server.
 	e.g., for a demo:
 	$cd seng_server/
 	$openssl req -x509 -newkey rsa:3072 -keyout srv_key.pem -out srv_cert.pem -days 365 -nodes
@@ -489,3 +494,13 @@ wrk2 can be used to benchmark SENG NGINX (cf. benchmarking/ directory).
 
 ##DNS
 * at the moment the DNS server used by lwIP for standard APIs, e.g., getaddrinfo(), is hard-coded in the SENG runtime/sdk startup code (to 8.8.8.8)
+
+# <a name="spid" /> Getting SPID and SubscriptionKey for the EPID-based Intel SGX Remote Attestation
+For using the Intel SGX Remote Attestation Service (IAS), an account is required:
+1. If you have no account for the Intel Developer Zone, please register at https://software.intel.com/registration/
+2. Login with your Intel Developer account at https://api.portal.trustedservices.intel.com/EPID-attestation and then subscribe to the "Development Access" for the EPID Intel SGX Attestation Service with linkable or unlinkable quotes (choose according to your needs/preferences).
+	Linkable:   https://api.portal.trustedservices.intel.com/productes/dev-intel-software-guard-extensions-attestation-service-linkable
+	Unlinkable: https://api.portal.trustedservices.intel.com/productes/dev-intel-software-guard-extensions-attestation-service-unlinkable
+
+	*NOTE*: Links only work when logged in. Both links are given on the /EPID-attestation page. Choose "Development Access".
+3. After successful registration/confirmation, go to your subscription management page at https://api.portal.trustedservices.intel.com/developer to get your SPID and SubscriptionKey(s) required for the remote attestation.
