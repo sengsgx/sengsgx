@@ -1,16 +1,3 @@
-diff --git a/.gitignore b/.gitignore
-index e987bac..d66ad09 100644
---- a/.gitignore
-+++ b/.gitignore
-@@ -64,6 +64,8 @@ sgxlkl-wolfssl-ssl-server
- wolfssl-ssl-server-mutual
- wolfssl-client-mutual
- 
-+ssl_client
-+
- # Graphene-SGX
- *.sig
- *.token
 diff --git a/Makefile b/Makefile
 index b4d3e3d..a053128 100644
 --- a/Makefile
@@ -305,24 +292,6 @@ index 0000000..e6a0ab8
 +do
 +		echo "sgx.trusted_files.`basename ${l} | sed -rn 's/^(lib.*).so.*$/\1/p' | tr -d '\-_.'` = file:deps/graphene/Runtime/`basename ${l}`"
 +done
-diff --git a/demo_libs.bash b/demo_libs.bash
-new file mode 100644
-index 0000000..05f3d2a
---- /dev/null
-+++ b/demo_libs.bash
-@@ -0,0 +1,12 @@
-+#ln -s /lib/x86_64-linux-gnu/libcrypto.so.1.0.0 ./deps/graphene/Runtime/ || exit 1
-+ln -s ~/client_enclave/lwip_based_client_lib/dock_build/liblwip.so ./deps/graphene/Runtime/
-+#ln -s /lib/x86_64-linux-gnu/libz.so.1 ./deps/graphene/Runtime/ || exit 1
-+ln -s ~/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_tunnel_netif.so ./deps/graphene/Runtime/ 
-+#ln -s /usr/lib/x86_64-linux-gnu/libprotobuf-c.so.1 ./deps/graphene/Runtime/ || exit 1
-+#ln -s /usr/lib/libsgx_uae_service.so ./deps/graphene/Runtime/ || exit 1
-+ln -s /lib/x86_64-linux-gnu/libgcc_s.so.1 ./deps/graphene/Runtime/
-+ln -s /lib/x86_64-linux-gnu/libssl.so.1.0.0 ./deps/graphene/Runtime/
-+ln -s ~/client_enclave/lwip_based_client_lib/dock_build/dtls_tunnel_netif/src/libseng_onload.so ./deps/graphene/Runtime/ 
-+ln -s /lib/x86_64-linux-gnu/libnss_files.so.2 ./deps/graphene/Runtime/
-+ln -s /usr/lib/x86_64-linux-gnu/libprotobuf.so.9 ./deps/graphene/Runtime/
-+ln -s /usr/lib/x86_64-linux-gnu/libstdc++.so.6 ./deps/graphene/Runtime/
 diff --git a/fixed_exitless_syscalls_pr405.patch b/fixed_exitless_syscalls_pr405.patch
 new file mode 100644
 index 0000000..c9ba9bf
@@ -2915,7 +2884,7 @@ index 0000000..36a8bea
 +../Pal/src/host/Linux-SGX/debugger/gdb
 \ No newline at end of file
 diff --git a/ias-ra.c b/ias-ra.c
-index 70af519..9d56431 100644
+index 70af519..c23c50f 100644
 --- a/ias-ra.c
 +++ b/ias-ra.c
 @@ -16,6 +16,8 @@
@@ -2927,23 +2896,21 @@ index 70af519..9d56431 100644
  struct buffer_and_size {
      char* data;
      size_t len;
-@@ -72,7 +74,8 @@ void extract_certificates_from_response_header
+@@ -72,7 +74,7 @@ void extract_certificates_from_response_header
  )
  {
      // Locate x-iasreport-signature HTTP header field in the response.
 -    const char response_header_name[] = "x-iasreport-signing-certificate: ";
 +    const char response_header_name[] = "X-IASReport-Signing-Certificate: ";
-+    //const char response_header_name[] = "x-iasreport-signing-certificate: ";
      char *field_begin = memmem(header,
                                 header_len,
                                 response_header_name,
-@@ -144,12 +147,18 @@ void parse_response_header
+@@ -144,12 +146,17 @@ void parse_response_header
      uint32_t* signature_size
  )
  {
 -    const char sig_tag[] = "x-iasreport-signature: ";
 +    const char sig_tag[] = "X-IASReport-Signature: ";
-+    //const char sig_tag[] = "x-iasreport-signature: ";
      char* sig_begin = memmem((const char*) header,
                               header_len,
                               sig_tag,
@@ -2952,13 +2919,13 @@ index 70af519..9d56431 100644
 +    /* This one has failed sometimes in the past, which results in a freeze. So call exit(1) instead */
 +    //assert(sig_begin != NULL);
 +    if (sig_begin == NULL) {
-+        fprintf(stderr, "error in ias-ra.c:154@parse_responde_header: `sig_begin != NULL' failed\n");
++        fprintf(stderr, "error in ias-ra.c:154@parse_response_header: `sig_begin != NULL' failed\n");
 +        exit(1);
-+    } 
++    }
      sig_begin += strlen(sig_tag);
      char* sig_end = memmem(sig_begin,
                             header_len - (sig_begin - header),
-@@ -182,31 +191,67 @@ void obtain_attestation_verification_report
+@@ -182,31 +189,52 @@ void obtain_attestation_verification_report
  
      curl = curl_easy_init();
      if(curl) {
@@ -2969,11 +2936,6 @@ index 70af519..9d56431 100644
          curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
          char url[512];
 -        ret = snprintf(url, sizeof(url), "https://%s/attestation/sgx/v2/report",
-+        //ret = snprintf(url, sizeof(url), "https://%s/attestation/sgx/v2/report",
-+        // 05.03.19
-+        //ret = snprintf(url, sizeof(url), "https://%s/attestation/sgx/v3/report",
-+        //                   opts->ias_server);
-+        // 10.07.19
 +        ret = snprintf(url, sizeof(url), "https://%s/sgx/dev/attestation/v3/report",
                             opts->ias_server);
          assert(ret < (int) sizeof(url));
@@ -2985,16 +2947,6 @@ index 70af519..9d56431 100644
 -        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 +        ret = curl_easy_setopt(curl, CURLOPT_URL, url);
 +        assert(ret == CURLE_OK);
-+//        ret = curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, "PEM");
-+//        assert(ret == CURLE_OK);
-+//        ret = curl_easy_setopt(curl, CURLOPT_SSLCERT, opts->ias_cert_file);
-+//        assert(ret == CURLE_OK);
-+//        ret = curl_easy_setopt(curl, CURLOPT_SSLKEY, opts->ias_key_file);
-+//        assert(ret == CURLE_OK);
-+	//printf("Setting password\n");
-+//        ret = curl_easy_setopt(curl, CURLOPT_KEYPASSWD, "XXX");
-+//        assert(ret == CURLE_OK);
-+	//printf("done\n");
 +        ret = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 +        assert(ret == CURLE_OK);
 +        ret = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -3034,7 +2986,7 @@ index 70af519..9d56431 100644
      
          curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
          curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json);
-@@ -225,8 +270,10 @@ void obtain_attestation_verification_report
+@@ -225,8 +253,10 @@ void obtain_attestation_verification_report
              printf("curl_easy_perform= %d\n", res);
          }
          
@@ -3047,27 +2999,6 @@ index 70af519..9d56431 100644
  
          parse_response_header(header.data, header.len,
                                attn_report->ias_report_signature,
-diff --git a/mbedtls-client.patch b/mbedtls-client.patch
-index 3b10d50..a0ad640 100644
---- a/mbedtls-client.patch
-+++ b/mbedtls-client.patch
-@@ -7,13 +7,14 @@ index fa70431..a580d22 100644
-  #include <string.h>
-  
- -#define SERVER_PORT "4433"
-+-#define SERVER_NAME "localhost"
- +#include <sgx_quote.h>
- +
- +#include "ra.h"
- +#include "ra-challenger.h"
- +
--+#define SERVER_PORT "11111"
-- #define SERVER_NAME "localhost"
-++#define SERVER_PORT "12345"
-++#define SERVER_NAME "111.222.111.222"
-  #define GET_REQUEST "GET / HTTP/1.0\r\n\r\n"
-  
- -#define DEBUG_LEVEL 1
 diff --git a/mbedtls-ra-attester.c b/mbedtls-ra-attester.c
 index 679bfed..b24d182 100644
 --- a/mbedtls-ra-attester.c
@@ -3621,12 +3552,12 @@ index 0000000..3594e94
 \ No newline at end of file
 diff --git a/my_etc_files/resolv.conf b/my_etc_files/resolv.conf
 new file mode 100644
-index 0000000..4d59090
+index 0000000..82ef6b4
 --- /dev/null
 +++ b/my_etc_files/resolv.conf
 @@ -0,0 +1,4 @@
-+search example.com
-+domain example.com
++#search example.com
++#domain example.com
 +nameserver 8.8.8.8
 +options edns0 ndots:0
 diff --git a/my_etc_files/services b/my_etc_files/services
@@ -4255,135 +4186,6 @@ index 0000000..b307285
 @@ -0,0 +1 @@
 +/etc/ssl/openssl.cnf
 \ No newline at end of file
-diff --git a/new-demo-client.manifest b/new-demo-client.manifest
-new file mode 100644
-index 0000000..1b608db
---- /dev/null
-+++ b/new-demo-client.manifest
-@@ -0,0 +1,94 @@
-+loader.preload = file:deps/graphene/Runtime/libsysdb.so
-+loader.env.LD_LIBRARY_PATH = /lib
-+#loader.env.LD_DEBUG = files
-+#loader.debug_type = inline
-+loader.env.MALLOC_CHECK_ = 1
-+loader.debug_type = none
-+loader.syscall_symbol = syscalldb
-+
-+loader.env.LD_PRELOAD = deps/graphene/Runtime/libseng_onload.so
-+#loader.env.LD_PRELOAD = deps/graphene/Runtime/liblwip_no_seng_onload.so
-+fs.mount.tundev.type = chroot
-+fs.mount.tundev.path = /dev/net/tun
-+fs.mount.tundev.uri = file:/dev/net/tun
-+sgx.allowed_files.tun = file:/dev/net/tun
-+
-+fs.mount.lib.type = chroot
-+fs.mount.lib.path = /lib
-+fs.mount.lib.uri = file:deps/graphene/Runtime
-+
-+fs.mount.bin.type = chroot
-+fs.mount.bin.path = /bin
-+fs.mount.bin.uri = file:/bin
-+
-+sgx.enclave_size = 1024M
-+sys.brk.size = 64M
-+sys.stack.size = 8M
-+
-+# 4 seems to cause "Cannot attach to any TCS!"
-+sgx.thread_num = 6
-+
-+# allow to bind on port 8000
-+#net.allow_bind.1 = 127.0.0.1:8000
-+# allow to connect to port 8000
-+net.allow_peer.1 = 111.222.111.222:12345
-+net.allow.peer.2 = 34.234.230.147:443
-+
-+#net.allow_bind.https = 127.0.0.1:4433
-+#net.allow_peer.https = 127.0.0.1:4433
-+
-+# sgx-related
-+sgx.trusted_files.libonloadseng = file:deps/graphene/Runtime/libseng_onload.so
-+sgx.trusted_files.libonloadlwiponly = file:deps/graphene/Runtime/liblwip_no_seng_onload.so
-+sgx.trusted_files.libdtlsif = file:deps/graphene/Runtime/libseng_tunnel_netif.so
-+sgx.trusted_files.liblwiptunif = file:deps/graphene/Runtime/libadapted_lwip_tun_netif.so
-+sgx.trusted_files.liblwip = file:deps/graphene/Runtime/liblwip.so
-+
-+sgx.trusted_files.ld = file:deps/graphene/Runtime/ld-linux-x86-64.so.2
-+sgx.trusted_files.libdl = file:deps/graphene/Runtime/libdl.so.2
-+sgx.trusted_files.libpthread = file:deps/graphene/Runtime/libpthread.so.0
-+sgx.trusted_files.libc = file:deps/graphene/Runtime/libc.so.6
-+sgx.trusted_files.libm = file:deps/graphene/Runtime/libm.so.6
-+
-+sgx.trusted_files.libprotobufc = file:deps/graphene/Runtime/libprotobuf-c.so.1
-+sgx.trusted_files.libresolv = file:deps/graphene/Runtime/libresolv.so.2
-+sgx.trusted_files.libnssdnsso2 = file:deps/graphene/Runtime/libnss_dns.so.2
-+# [15.02.19]: allow lookup in /etc/hosts
-+sgx.trusted_files.libnssfilesso2 = file:deps/graphene/Runtime/libnss_files.so.2
-+
-+sgx.trusted_files.libsgx_uae_service = file:deps/graphene/Runtime/libsgx_uae_service.so
-+
-+sgx.trusted_files.libcrypto = file:deps/graphene/Runtime/libcrypto.so.1.0.0
-+sgx.trusted_files.libz = file:deps/graphene/Runtime/libz.so.1
-+sgx.trusted_files.libssl = file:deps/graphene/Runtime/libssl.so.1.0.0
-+
-+# might in future want to use local version instead for compilation and then
-+# create the symlink based on the local library version not the system-wide one
-+#sgx.trusted_files.libcurl = file:/deps/local/lib/libcurl.4.so
-+
-+# via ./copy_libs_helper.bash
-+# BUG Graphene cannot handle '-' character in trusted_files name (also of coure no '.')
-+
-+#new
-+sgx.trusted_files.libcxx = file:deps/graphene/Runtime/libstdc++.so.6
-+sgx.trusted_files.libgcc = file:deps/graphene/Runtime/libgcc_s.so.1
-+
-+sgx.trusted_files.libprotobufcpp = file:deps/graphene/Runtime/libprotobuf.so.9
-+
-+fs.mount.etc.type = chroot
-+fs.mount.etc.path = /etc
-+#fs.mount.etc.uri = file:/etc
-+fs.mount.etc.uri = file:/home/encl-dev/sgx-ra-tls/my_etc_files
-+
-+sgx.trusted_files.cacertificates = file:/etc/ssl/certs/ca-certificates.crt
-+
-+sgx.trusted_files.client_ias_key = file:ias-client-key.pem
-+sgx.trusted_files.client_ias_cert = file:ias-client-cert.pem
-+
-+sgx.trusted_files.myresolv = file:/home/encl-dev/sgx-ra-tls/my_etc_files/resolv.conf
-+sgx.trusted_files.myhosts = file:/home/encl-dev/sgx-ra-tls/my_etc_files/hosts
-+sgx.trusted_files.myhost = file:/home/encl-dev/sgx-ra-tls/my_etc_files/host.conf
-+sgx.trusted_files.mynssw = file:/home/encl-dev/sgx-ra-tls/my_etc_files/nsswitch.conf
-+
-+# not required?
-+sgx.trusted_files.services = file:/home/encl-dev/sgx-ra-tls/my_etc_files/services
-diff --git a/new_try.bash b/new_try.bash
-new file mode 100644
-index 0000000..1e7595d
---- /dev/null
-+++ b/new_try.bash
-@@ -0,0 +1,23 @@
-+#!/bin/bash
-+cd ~/sgx-ra-tls/
-+SGX_MODE=HW make mbedtls/libnonsdk-ra-attester.a || exit 1
-+
-+cd ~/client_enclave/lwip_based_client_lib/dock_build/
-+SGX_MODE=HW make -j4 || exit 1
-+cp ./my_demo ~/sgx-ra-tls/new_demo_client
-+
-+cd ~/sgx-ra-tls/
-+deps/graphene/Pal/src/host/Linux-SGX/signer/pal-sgx-sign -libpal deps/graphene/Runtime/libpal-Linux-SGX.so -key deps/graphene/Pal/src/host/Linux-SGX/signer/enclave-key.pem -output new_demo_client.manifest.sgx -exec new_demo_client -manifest new-demo-client.manifest || exit 1
-+
-+deps/graphene/Pal/src/host/Linux-SGX/signer/pal-sgx-get-token -output new_demo_client.token -sig new_demo_client.sig || exit 1
-+
-+echo "*******************************************************************************************"
-+echo "NOW GOING TO START THE ACTUAL PROGRAM"
-+echo "*******************************************************************************************"
-+
-+ulimit -n 512
-+
-+#su -c "SGX=1 ./deps/graphene/Runtime/pal_loader ./ssl_client" root
-+export SGX=1
-+sudo -E ./deps/graphene/Runtime/pal_loader ./new_demo_client
-+#./deps/graphene/Runtime/pal_loader ./new_demo_client
 diff --git a/nonsdk-ra-attester.c b/nonsdk-ra-attester.c
 index 6ec4eab..013a430 100644
 --- a/nonsdk-ra-attester.c
@@ -5078,152 +4880,6 @@ index 3c84a5f..04198ea 100644
 +//    .ias_server = "test-as.sgx.trustedservices.intel.com:443"
 +    .ias_server = "api.trustedservices.intel.com:443"
  };
-diff --git a/ssl-client.manifest b/ssl-client.manifest
-new file mode 100644
-index 0000000..474815e
---- /dev/null
-+++ b/ssl-client.manifest
-@@ -0,0 +1,120 @@
-+loader.preload = file:deps/graphene/Runtime/libsysdb.so
-+loader.env.LD_LIBRARY_PATH = /lib
-+#loader.debug_type = inline
-+loader.debug_type = none
-+loader.syscall_symbol = syscalldb
-+#loader.env.LD_PRELOAD = deps/graphene/Runtime/libtri_lib.so
-+#loader.env.LD_PRELOAD = deps/graphene/Runtime/libtest_lib.so
-+loader.env.LD_PRELOAD = deps/graphene/Runtime/libpreload_hooker.so
-+
-+fs.mount.lib.type = chroot
-+fs.mount.lib.path = /lib
-+fs.mount.lib.uri = file:deps/graphene/Runtime
-+
-+fs.mount.bin.type = chroot
-+fs.mount.bin.path = /bin
-+fs.mount.bin.uri = file:/bin
-+
-+sgx.enclave_size = 1024M
-+sys.brk.size = 32M
-+sys.stack.size = 4M
-+
-+# allow to bind on port 8000
-+#net.allow_bind.1 = 127.0.0.1:8000
-+# allow to connect to port 8000
-+net.allow_peer.1 = 111.222.111.222:12345
-+net.allow.peer.2 = 34.234.230.147:443
-+
-+#net.allow_bind.https = 127.0.0.1:4433
-+#net.allow_peer.https = 127.0.0.1:4433
-+
-+# sgx-related
-+sgx.trusted_files.libscnd = file:deps/graphene/Runtime/libscnd_lib.so
-+sgx.trusted_files.libtest = file:deps/graphene/Runtime/libtest_lib.so
-+sgx.trusted_files.libtri = file:deps/graphene/Runtime/libtri_lib.so
-+
-+sgx.trusted_files.libpreloadhook = file:deps/graphene/Runtime/libpreload_hooker.so
-+
-+sgx.trusted_files.libclientpac = file:deps/graphene/Runtime/libclient_pac.so
-+sgx.trusted_files.libcommonenc = file:deps/graphene/Runtime/libcommon_enc.so
-+sgx.trusted_files.libratlscli = file:deps/graphene/Runtime/libratls_client.so
-+
-+sgx.trusted_files.ld = file:deps/graphene/Runtime/ld-linux-x86-64.so.2
-+sgx.trusted_files.libdl = file:deps/graphene/Runtime/libdl.so.2
-+sgx.trusted_files.libpthread = file:deps/graphene/Runtime/libpthread.so.0
-+sgx.trusted_files.libc = file:deps/graphene/Runtime/libc.so.6
-+sgx.trusted_files.libm = file:deps/graphene/Runtime/libm.so.6
-+
-+sgx.trusted_files.libprotobufc = file:deps/graphene/Runtime/libprotobuf-c.so.1
-+sgx.trusted_files.libresolv = file:deps/graphene/Runtime/libresolv.so.2
-+sgx.trusted_files.libnssdnsso2 = file:deps/graphene/Runtime/libnss_dns.so.2
-+
-+sgx.trusted_files.libsgx_uae_service = file:deps/graphene/Runtime/libsgx_uae_service.so
-+
-+sgx.trusted_files.libcrypto = file:deps/graphene/Runtime/libcrypto.so.1.0.0
-+sgx.trusted_files.libz = file:deps/graphene/Runtime/libz.so.1
-+sgx.trusted_files.libssl = file:deps/graphene/Runtime/libssl.so.1.0.0
-+
-+# might in future want to use local version instead for compilation and then
-+# create the symlink based on the local library version not the system-wide one
-+#sgx.trusted_files.libcurl = file:/deps/local/lib/libcurl.4.so
-+
-+# via ./copy_libs_helper.bash
-+# BUG Graphene cannot handle '-' character in trusted_files name (also of coure no '.')
-+
-+sgx.trusted_files.libcomerr = file:deps/graphene/Runtime/libcom_err.so.2
-+sgx.trusted_files.libcrypt = file:deps/graphene/Runtime/libcrypt.so.1
-+sgx.trusted_files.libkeyutils = file:deps/graphene/Runtime/libkeyutils.so.1
-+sgx.trusted_files.libasn1 = file:deps/graphene/Runtime/libasn1.so.8
-+sgx.trusted_files.libcurl = file:deps/graphene/Runtime/libcurl.so.4
-+sgx.trusted_files.libffi = file:deps/graphene/Runtime/libffi.so.6
-+sgx.trusted_files.libgmp = file:deps/graphene/Runtime/libgmp.so.10
-+sgx.trusted_files.libgnutls = file:deps/graphene/Runtime/libgnutls.so.30
-+sgx.trusted_files.libgssapi = file:deps/graphene/Runtime/libgssapi.so.3
-+sgx.trusted_files.libgssapikrb5 = file:deps/graphene/Runtime/libgssapi_krb5.so.2
-+sgx.trusted_files.libhcrypto = file:deps/graphene/Runtime/libhcrypto.so.4
-+sgx.trusted_files.libheimbase = file:deps/graphene/Runtime/libheimbase.so.1
-+sgx.trusted_files.libheimntlm = file:deps/graphene/Runtime/libheimntlm.so.0
-+sgx.trusted_files.libhogweed = file:deps/graphene/Runtime/libhogweed.so.4
-+sgx.trusted_files.libhx509 = file:deps/graphene/Runtime/libhx509.so.5
-+sgx.trusted_files.libidn = file:deps/graphene/Runtime/libidn.so.11
-+sgx.trusted_files.libk5crypto = file:deps/graphene/Runtime/libk5crypto.so.3
-+sgx.trusted_files.libkrb526 = file:deps/graphene/Runtime/libkrb5.so.26
-+sgx.trusted_files.libkrb53 = file:deps/graphene/Runtime/libkrb5.so.3
-+sgx.trusted_files.libkrb5support = file:deps/graphene/Runtime/libkrb5support.so.0
-+sgx.trusted_files.liblber24 = file:deps/graphene/Runtime/liblber-2.4.so.2
-+sgx.trusted_files.libldapr24 = file:deps/graphene/Runtime/libldap_r-2.4.so.2
-+sgx.trusted_files.libnettle = file:deps/graphene/Runtime/libnettle.so.6
-+sgx.trusted_files.libp11kit = file:deps/graphene/Runtime/libp11-kit.so.0
-+sgx.trusted_files.libroken = file:deps/graphene/Runtime/libroken.so.18
-+sgx.trusted_files.librtmp = file:deps/graphene/Runtime/librtmp.so.1
-+sgx.trusted_files.libsasl2 = file:deps/graphene/Runtime/libsasl2.so.2
-+sgx.trusted_files.libsqlite3 = file:deps/graphene/Runtime/libsqlite3.so.0
-+sgx.trusted_files.libtasn1 = file:deps/graphene/Runtime/libtasn1.so.6
-+sgx.trusted_files.libwind = file:deps/graphene/Runtime/libwind.so.0
-+
-+#new
-+sgx.trusted_files.libcxx = file:deps/graphene/Runtime/libstdc++.so.6
-+sgx.trusted_files.libgcc = file:deps/graphene/Runtime/libgcc_s.so.1
-+
-+#newer
-+sgx.trusted_files.libprotobufcpp = file:deps/graphene/Runtime/libprotobuf.so.9
-+
-+#experimental + ultra new
-+sgx.trusted_files.libuv = file:deps/graphene/Runtime/libuv.so.1
-+sgx.trusted_files.librt = file:deps/graphene/Runtime/librt.so.1
-+
-+# now also boost as long as new C++ standard with shared_mutex is missing in enclave/docker ...
-+sgx.trusted_files.boostthread = file:deps/graphene/Runtime/libboost_thread.so.1.58.0
-+sgx.trusted_files.boostsystem = file:deps/graphene/Runtime/libboost_system.so.1.58.0
-+
-+fs.mount.etc.type = chroot
-+fs.mount.etc.path = /etc
-+fs.mount.etc.uri = file:/etc
-+
-+sgx.trusted_files.cacertificates = file:/etc/ssl/certs/ca-certificates.crt
-+
-+sgx.trusted_files.client_ias_key = file:ias-client-key.pem
-+sgx.trusted_files.client_ias_cert = file:ias-client-cert.pem
-+
-+sgx.trusted_files.etcresolv = file:/etc/resolv.conf
-diff --git a/try_again.bash b/try_again.bash
-new file mode 100644
-index 0000000..03f2293
---- /dev/null
-+++ b/try_again.bash
-@@ -0,0 +1,14 @@
-+#!/bin/bash
-+cd ~/sgx-ra-tls/
-+SGX_MODE=HW make mbedtls/libnonsdk-ra-attester.a || exit 1
-+
-+cd ~/client_enclave/demo_mbedtls_client/build/
-+SGX_MODE=HW make ssl_client || exit 1
-+cp ./src/ssl_client ~/sgx-ra-tls
-+
-+cd ~/sgx-ra-tls/
-+deps/graphene/Pal/src/host/Linux-SGX/signer/pal-sgx-sign -libpal deps/graphene/Runtime/libpal-Linux-SGX.so -key deps/graphene/Pal/src/host/Linux-SGX/signer/enclave-key.pem -output ssl_client.manifest.sgx -exec ssl_client -manifest ssl-client.manifest ; deps/graphene/Pal/src/host/Linux-SGX/signer/pal-sgx-get-token -output ssl_client.token -sig ssl_client.sig
-+
-+#su -c "SGX=1 ./deps/graphene/Runtime/pal_loader ./ssl_client" root
-+export SGX=1
-+sudo -E ./deps/graphene/Runtime/pal_loader ./ssl_client
 diff --git a/wolfssl-ra-challenger.c b/wolfssl-ra-challenger.c
 index cfc6068..8c50c1d 100644
 --- a/wolfssl-ra-challenger.c
