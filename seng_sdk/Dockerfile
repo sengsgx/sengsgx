@@ -3,6 +3,11 @@ FROM seng/baseimage
 ARG username=encl-dev
 ARG userhome=/home/${username}
 
+# Uninstall old Intel SGX SDK
+RUN /opt/intel/sgxsdk/uninstall.sh && rmdir /opt/intel/ && \
+    rm /home/${username}/downloads/sgx_linux_x64_sdk_2.2.100.45311.bin && \
+    rmdir /home/${username}/downloads/
+
 # Dependencies for compilation of Intel SGX and PSW
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential ocaml automake autoconf libtool wget python libssl-dev \

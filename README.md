@@ -53,7 +53,6 @@ Note: The following build steps were tested under Ubuntu 16.04.6 LTS and kernel 
     cd base_container/
     docker-compose run --user encl-dev base-container
     cd ~/sgx-ra-tls/
-    ./build.sh graphene  *TODO* fix error/disable wolfssl build
     ./build.sh graphene
     make
     ```

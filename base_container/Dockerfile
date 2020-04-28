@@ -11,6 +11,9 @@ ARG username=encl-dev
 ARG userid=1000
 ARG userhome=/home/${username}
 
+ARG sgxsdk=sgx_linux_x64_sdk_2.2.100.45311.bin
+ARG sgxsdk_url=https://download.01.org/intel-sgx/linux-2.2/ubuntu64-desktop/${sgxsdk}
+
 # create a normal user
 # cf. `getent passwd $USER`
 RUN useradd --create-home --shell /bin/bash --uid ${userid} ${username} && \
@@ -49,6 +52,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         # for DOXYGEN in CMake ##################
         doxygen \
         graphviz
+
+# SGX SDK (headers required)
+RUN mkdir --mode 775 /opt/intel/ && \
+        chgrp ${username} /opt/intel && \
+        mkdir --mode 775 ${userhome}/downloads && \
+        chown ${username}:${username} ${userhome}/downloads && \
+        wget --directory-prefix ${userhome}/downloads ${sgxsdk_url} && \
+        printf 'no\n/opt/intel\n' | su -c "bash ${userhome}/downloads/${sgxsdk}" ${username}
 
 # for more convenient testing
 RUN apt-get update && apt-get install -y --no-install-recommends \
