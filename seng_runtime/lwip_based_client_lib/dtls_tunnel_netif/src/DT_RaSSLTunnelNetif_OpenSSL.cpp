@@ -315,7 +315,8 @@ namespace seng {
             throw std::runtime_error("SSL handshake with SENG Server failed");
         }
         
-        target.sin_port = htons(4711);
+        // same IP, but port + 1
+        target.sin_port = htons((short) port+1);
 
         if(connect(recv_udp, (struct sockaddr *)&target, sizeof(target)) < 0) {
             close(recv_udp);

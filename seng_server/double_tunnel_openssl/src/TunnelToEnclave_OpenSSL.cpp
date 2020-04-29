@@ -107,12 +107,20 @@ namespace seng {
         
         // set non-blocking later! (after handshake!)
 
-        struct sockaddr_in add {
-            .sin_family = AF_INET,
-            .sin_port = htons(4711),
-            .sin_addr = {0},
-        };
-        inet_aton("127.0.0.1", &add.sin_addr);
+        // Get IP and Port of 1st tunnel; take same IP, and Port+1
+        struct sockaddr_in add {};
+        socklen_t add_len {sizeof(add)};
+        if (getsockname(SSL_get_rfd(ssl), (struct sockaddr *)&add, &add_len) != 0 ||
+            add.sin_family != AF_INET) {
+            throw std::runtime_error("failed to retrieve tunnel IP/port");
+        }
+        add.sin_port = htons( ntohs(add.sin_port) + 1);
+
+#ifdef DEBUG_TTE
+        std::cout << "2nd Tunnel IP: " << inet_ntoa(add.sin_addr) << std::endl;
+        std::cout << "2nd Tunnel Port: " << ntohs(add.sin_port) << std::endl;
+#endif
+
         if(bind(response_tun, (struct sockaddr *)&add, sizeof(add)) < 0) {
             close(response_tun);
             throw std::runtime_error("bind error");

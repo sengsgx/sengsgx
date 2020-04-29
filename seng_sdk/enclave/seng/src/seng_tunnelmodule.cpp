@@ -53,8 +53,8 @@ namespace seng {
             || !connect_tunnel(send_ssl)) return false;
         if (!recv_ip_config()) return false;
 
-        // 2nd tunnel: recv
-        if (!prepare_tunnel_socket(server_ip, 4711, &recv_tun_fd, &recv_ssl)
+        // 2nd tunnel: recv (port + 1)
+        if (!prepare_tunnel_socket(server_ip, server_port+1, &recv_tun_fd, &recv_ssl)
             || !connect_tunnel(recv_ssl)) return false;
 
         return true;
