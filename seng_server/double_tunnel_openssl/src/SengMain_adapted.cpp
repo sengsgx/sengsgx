@@ -15,7 +15,13 @@
 #include <netinet/in.h> // struct in_addr, in_port_t
 
 
-const char *USAGE {"Usage: seng_ossl_tunnel_server [-d <sqlite.db>] <tunnel_port>\n"};
+const char *USAGE {"Usage: seng_ossl_tunnel_server [-d <sqlite.db>] <tunnel_ipv4> <tunnel_port>\n"
+    "\nArguments:\n"
+    "tunnel_ipv4     = IPv4 address on which the server will listen\n"
+    "tunnel_port     = UDP port on which the server will listen\n"
+    "\nOptions:\n"
+    "-d <sqlite.db>  = optional path to SQLite3 database\n"
+    "-h              = show this help message\n"};
 
 int main(int argc, char *argv[]) {
     bool use_tls = false;
@@ -35,24 +41,33 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
     }
     
-    // check that one argument exists
-    if (optind != argc-1) {
+    // check that two arguments exists
+    if (optind != argc-2) {
         std::cerr << "ERROR: Wrong number of arguments" << std::endl;
         std::cout << USAGE << std::endl;
         return EXIT_FAILURE;
     }
+
+    // grab tunnel IP
+    if (strcmp("0.0.0.0", argv[optind]) == 0) {
+        std::cerr << "ERROR: an explicit IPv4 address has to be specified. \"0.0.0.0\" is invalid" << std::endl;
+        std::cout << USAGE << std::endl;
+        return EXIT_FAILURE;
+    }
+    // Warning: SENG Runtime and SDK currently assume 127.0.0.1
+    std::string tunnel_ip {argv[optind]}; // NOTE: 0.0.0.0 caused probs. with DTLS
 
     // parse given tunnel port number
     unsigned long tunnel_port_ul;
     {
         char *end_ptr;
         errno = 0;
-        tunnel_port_ul = std::strtoul(argv[optind], &end_ptr, 10);
+        tunnel_port_ul = std::strtoul(argv[optind+1], &end_ptr, 10);
         if (errno != 0) {
             std::cerr << "ERROR: given port number overflowed" << std::endl;
             std::cout << USAGE << std::endl;
             return EXIT_FAILURE;
-        } else if (end_ptr == argv[optind]) {
+        } else if (end_ptr == argv[optind+1]) {
             std::cerr << "ERROR: could not parse port number" << std::endl;
             std::cout << USAGE << std::endl;
             return EXIT_FAILURE;
@@ -63,9 +78,7 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
     }
-    
     auto tunnel_port = (in_port_t) tunnel_port_ul;
-    std::string tunnel_ip {"127.0.0.1"}; // NOTE: 0.0.0.0 caused probs. with DTLS
     
     // register signal handler for SIGINT
     if( sigaction(SIGINT, &sigint_handler, nullptr) < 0 ) {

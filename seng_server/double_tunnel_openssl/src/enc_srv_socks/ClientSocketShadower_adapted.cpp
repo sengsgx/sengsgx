@@ -56,7 +56,7 @@ namespace seng {
             .sin_family = AF_INET,
             .sin_port = htons(2409),
         };
-        //TODO: dynamically query the virtual interface IP
+        //TODO: use enclave subnetwork IP(s) for the Shadow Server
         int ret = inet_aton("192.168.28.1", &tun_addr.sin_addr);
         assert(ret != 0);
         if (bind(tmp_sock, (struct sockaddr *)&tun_addr, sizeof(tun_addr)) < 0) {
