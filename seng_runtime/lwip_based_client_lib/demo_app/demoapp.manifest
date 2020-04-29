@@ -7,13 +7,6 @@ loader.syscall_symbol = syscalldb
 loader.env.LD_PRELOAD = /lib/libseng_ossl_double_onload.so
 sgx.rpc_thread_num = 4
 
-fs.mount.tundev.type = chroot
-fs.mount.tundev.path = /dev/net/tun
-fs.mount.tundev.uri = file:/dev/net/tun
-sgx.allowed_files.tun = file:/dev/net/tun
-
-#load.exec = file:/usr/bin/iperf3
-
 fs.mount.lib.type = chroot
 fs.mount.lib.path = /lib
 fs.mount.lib.uri = file:../../../sgx-ra-tls/deps/graphene/Runtime
@@ -56,10 +49,6 @@ sgx.trusted_files.libcrypto = file:../../../sgx-ra-tls/deps/graphene/Runtime/lib
 sgx.trusted_files.libz = file:../../../sgx-ra-tls/deps/graphene/Runtime/libz.so.1
 sgx.trusted_files.libssl = file:../../../sgx-ra-tls/deps/graphene/Runtime/libssl.so.1.0.0
 
-# via ./copy_libs_helper.bash
-# BUG Graphene cannot handle '-' character in trusted_files name (also of coure no '.')
-
-#new
 sgx.trusted_files.libcxx = file:../../../sgx-ra-tls/deps/graphene/Runtime/libstdc++.so.6
 sgx.trusted_files.libgcc = file:../../../sgx-ra-tls/deps/graphene/Runtime/libgcc_s.so.1
 
@@ -67,7 +56,6 @@ sgx.trusted_files.libprotobufcpp = file:../../../sgx-ra-tls/deps/graphene/Runtim
 
 fs.mount.etc.type = chroot
 fs.mount.etc.path = /etc
-#fs.mount.etc.uri = file:/etc
 fs.mount.etc.uri = file:../../../sgx-ra-tls/my_etc_files
 
 sgx.trusted_files.cacertificates = file:/etc/ssl/certs/ca-certificates.crt
