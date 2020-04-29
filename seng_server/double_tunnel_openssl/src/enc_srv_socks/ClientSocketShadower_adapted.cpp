@@ -405,15 +405,15 @@ namespace seng {
         }
         
         // Create rule object
-        struct in_addr only_for_our_setup_needed_middlebox_ip;
-        auto tmp = inet_aton("192.168.178.45", &only_for_our_setup_needed_middlebox_ip);
+        //struct in_addr only_for_our_setup_needed_middlebox_ip;
+        //auto tmp = inet_aton("192.168.178.45", &only_for_our_setup_needed_middlebox_ip);
         assert(tmp != 0);
         ShadowRule rule { static_cast<in_port_t>(shadow_msg.port()),
             static_cast<uint8_t>(shadow_msg.proto()),
             enc_addr.sin_addr.s_addr,
-            //untrusted_host_ip
+            untrusted_host_ip
             // TODO: we currently have to use middlebox IP instead, bcs. we need NATed setup as middlebox not runs on "real" gateway
-            only_for_our_setup_needed_middlebox_ip.s_addr,
+            //only_for_our_setup_needed_middlebox_ip.s_addr,
         };
         
         assert(session_state == SessionState::SHADOW_REQ__WAIT_FOR_CLISB_REPLY);

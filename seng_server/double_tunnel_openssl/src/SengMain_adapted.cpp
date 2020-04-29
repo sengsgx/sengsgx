@@ -15,19 +15,21 @@
 #include <netinet/in.h> // struct in_addr, in_port_t
 
 
-const char *USAGE {"Usage: seng_ossl_tunnel_server [-d <sqlite.db>] <tunnel_ipv4> <tunnel_port>\n"
+const char *USAGE {"Usage: seng_ossl_tunnel_server [-d <sqlite.db>] [-s] <tunnel_ipv4> <tunnel_port>\n"
     "\nArguments:\n"
     "tunnel_ipv4     = IPv4 address on which the server will listen\n"
     "tunnel_port     = UDP port on which the server will listen\n"
     "\nOptions:\n"
     "-d <sqlite.db>  = optional path to SQLite3 database\n"
-    "-h              = show this help message\n"};
+    "-h              = show this help message\n"
+    "-s              = enable ShadowServer for auto-nat/port shadowing at 192.168.28.1:2409/tcp\n"};
 
 int main(int argc, char *argv[]) {
     bool use_tls = false;
     int c;
     char *db_path {nullptr};
-    while ((c = getopt (argc, argv, "hd:")) != -1)
+    bool enable_shadow_srv {false};
+    while ((c = getopt (argc, argv, "hd:s")) != -1)
         switch (c)
     {
         case 'h':
@@ -36,9 +38,19 @@ int main(int argc, char *argv[]) {
         case 'd':
             db_path = optarg;
             continue;
+        case 's':
+            enable_shadow_srv = true;
+            continue;
         default:
             std::cout << USAGE << std::endl;
             return EXIT_FAILURE;
+    }
+
+    // '-d' and '-s' together currently not supported yet
+    if (db_path && enable_shadow_srv) {
+        std::cerr << "ERROR: '-d' and '-s' are not yet supported together. Choose at most one of them." << std::endl;
+        std::cout << USAGE << std::endl;
+        return EXIT_FAILURE;
     }
     
     // check that two arguments exists
@@ -111,7 +123,8 @@ int main(int argc, char *argv[]) {
     std::cout << "Welcome to the SENG Server" << std::endl;
     
     std::cout << "Tunnel Port: " << tunnel_port << std::endl;
-    seng::SengServerOpenSSL seng_server {tunnel_ip, tunnel_port, &stop_marker, (db_path ? make_optional<std::string>(db_path) : nullopt) };
+    seng::SengServerOpenSSL seng_server {tunnel_ip, tunnel_port, &stop_marker, (db_path ? make_optional<std::string>(db_path) : nullopt),
+                                        enable_shadow_srv };
     
     std::thread seng_srv_thread {&seng::SengServerOpenSSL::run, &seng_server};
     try {

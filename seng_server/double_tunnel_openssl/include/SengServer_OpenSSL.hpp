@@ -21,7 +21,8 @@ namespace seng {
     class SengServerOpenSSL {
     public:
         SengServerOpenSSL(std::string &ip_addr, in_port_t tunnel_port,
-                   volatile sig_atomic_t * stop_marker_ptr, optional<std::string> opt_db_path);
+                   volatile sig_atomic_t * stop_marker_ptr, optional<std::string> opt_db_path,
+                   bool enable_shadow_srv);
         ~SengServerOpenSSL();
   
         void run();
@@ -37,6 +38,8 @@ namespace seng {
         void shutdown_walker(uv_handle_t *h);
         bool is_shutting_down;
         
+        bool shadow_srv_enabled;
+
         //! IP address of Tunnel welcome Socket
         std::string tunnel_ip;
         //! Port number of Tunnel welcome Socket

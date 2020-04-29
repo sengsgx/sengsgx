@@ -32,9 +32,11 @@ using namespace std::experimental;
 namespace seng {
     SengServerOpenSSL::SengServerOpenSSL(std::string &ip_addr, in_port_t tunnel_port,
                              volatile sig_atomic_t * stop_marker_ptr,
-                             optional<std::string> opt_db_path) :
+                             optional<std::string> opt_db_path,
+                             bool enable_shadow_srv) :
     stop_marker_ptr(stop_marker_ptr), check_period_in_ms(5000), is_shutting_down(false),
-    tunnel_ip(ip_addr), tunnel_port(tunnel_port), ssl_engine("ECDHE-RSA-AES256-GCM-SHA384") {
+    shadow_srv_enabled(enable_shadow_srv), tunnel_ip(ip_addr), tunnel_port(tunnel_port),
+    ssl_engine("ECDHE-RSA-AES256-GCM-SHA384"), shadower_service_up(nullptr) {
         
         // use dummy, or Sqlite3-based enclave index
         if (!opt_db_path) {
@@ -160,8 +162,10 @@ namespace seng {
     void SengServerOpenSSL::run() {
         if (is_shutting_down) throw std::logic_error("SengServer has already been shut down; you should destruct it now");
         setup_welcome_socket();
-        setup_clisock_shadower_srv();
-        start_shadow_srv_thread();
+        if (shadow_srv_enabled) {
+            setup_clisock_shadower_srv();
+            start_shadow_srv_thread();
+        }
         start_event_loop();
     }
     
