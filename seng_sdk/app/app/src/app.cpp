@@ -6,11 +6,8 @@
 #include <pwd.h>
 #include <libgen.h>
 #include <stdlib.h>
-#include <pthread.h>
 
 #include <sys/time.h>
-
-#include <signal.h>
 
 # define MAX_PATH FILENAME_MAX
 
@@ -21,7 +18,10 @@
 
 #include "app_enclave_u.h"
 
-void *run_enclave_test(void *);
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+void run_enclave_test(void);
 
 // Based on SDK Sample code
 
@@ -132,49 +132,6 @@ void print_error_message(sgx_status_t ret)
         printf("Error: Unexpected error occurred [0x%x].\n", ret);
 }
 
-void call_ocall_bench(bool switchless) {
-    if(!switchless) printf("[Enclave] Normal OCALL bench\n");
-    else printf("[Enclave] Switchless OCALL bench\n");
-    
-    struct timeval tval_before, tval_after, tval_result;
-    gettimeofday(&tval_before, NULL);
-
-    sgx_status_t status = bench_ocall(global_eid, switchless ? ETRUE : EFALSE);
-    if (status != SGX_SUCCESS) printf("Call to bench_ocall has failed.\n");
-
-    gettimeofday(&tval_after, NULL);
-    timersub(&tval_after, &tval_before, &tval_result);
-    printf("Time elapsed: %ld.%06ld seconds\n", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
-}
-
-void bench_ecall(bool switchless) {
-    if(!switchless) printf("[Enclave] Normal ECALL bench\n");
-    else printf("[Enclave] Switchless ECALL bench\n");
-    
-    struct timeval tval_before, tval_after, tval_result;
-    gettimeofday(&tval_before, NULL);
-    int retval;
-
-    if (!switchless) {
-        for (int i=0; i<500000; i++) {
-            sgx_status_t status = bench_empty_ecall(global_eid, &retval);
-            if (status != SGX_SUCCESS) {
-                printf("Call to bench_empty_ecall has failed.\n");
-            }
-        }
-    } else {
-        for (int i=0; i<500000; i++) {
-            sgx_status_t status = bench_switchless_empty_ecall(global_eid, &retval);
-            if (status != SGX_SUCCESS) {
-                printf("Call to bench_switchless_empty_ecall has failed.\n");
-            }
-        }
-    }
-    gettimeofday(&tval_after, NULL);
-    timersub(&tval_after, &tval_before, &tval_result);
-    printf("Time elapsed: %ld.%06ld seconds\n", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
-}
-
 /* Initialize the enclave:
  *   Step 1: retrive the launch token saved by last transaction
  *   Step 2: call sgx_create_enclave to initialize an enclave instance
@@ -252,25 +209,28 @@ int initialize_enclave(const sgx_uswitchless_config_t* us_config)
     return 0;
 }
 
-
 void switchless_demo(int num)
 {
     printf("switchless_demo got called with arg %d\n", num);
     return;
 }
 
-sig_atomic_t call_count = 0;
-
-void demo_alrm_handler(int s) {
-    call_count++;
-}
-
+const char *USAGE = "DemoApp <dst_ip4>\n";
+struct in_addr dst_ip4 {};
 
 /* Application entry */
 int main(int argc, char *argv[])
 {
-    (void)(argc);
-    (void)(argv);
+    if (argc != 2) {
+        fprintf(stderr, "Wrong number of arguments\n");
+        printf("%s", USAGE);
+        return EXIT_FAILURE;
+    }
+    const char *ip_addr = argv[1];
+    if (inet_aton(ip_addr, &dst_ip4) == 0) {
+        fprintf(stderr, "Invalid IP address\n");
+        return EXIT_FAILURE;
+    }
 
     /* Changing dir to where the executable is.*/
     char absolutePath[MAX_PATH];
@@ -284,25 +244,7 @@ int main(int argc, char *argv[])
     /* Configuration for Switchless SGX */
     sgx_uswitchless_config_t us_config = SGX_USWITCHLESS_CONFIG_INITIALIZER;
     us_config.num_uworkers = 2;
-    us_config.num_tworkers = 1;
-
-    /* Demo: register signal handler for SIGALRM */
-    printf("Initial value of signal handler-call count: %d\n", call_count);
-    struct sigaction alrm_hndler {};
-    alrm_hndler.sa_handler = demo_alrm_handler;
-    alrm_hndler.sa_flags = 0;
-    struct sigaction old_act {};
-    sigfillset(&alrm_hndler.sa_mask); // ignore all
-    // Note:    HW excpts like SIGBUS will cause errors/stops by urts
-    // Note(2): register before enclave create to not overwrite urts handler (but only exists for HW except-signals)
-    if (sigaction(SIGALRM, &alrm_hndler, &old_act) < 0) {
-        printf("[WARNING] Failed to register handler for SIGALRM\n");
-    }
-    if (old_act.sa_handler != NULL || old_act.sa_sigaction != NULL) {
-        printf("old handler seems to have existed!\n");
-    } else {
-        printf("no previous handler seems to have existed!\n");
-    }
+    us_config.num_tworkers = 0;
 
     /* Initialize the enclave */
     if (initialize_enclave(&us_config) < 0)
@@ -310,71 +252,27 @@ int main(int argc, char *argv[])
 
     printf("Successfully initialized the Enclave!\n");
 
-    /* Spawn second thread */
-    printf("Spawning a second untrusted app thread\n");
-    pthread_t second_thread;
-    int res = pthread_create(&second_thread, nullptr,
-                          run_enclave_test, nullptr);
-    if (res != 0) {
-        printf("Failed to create a second thread\n");
-    }
-
-    // Call second Demo ECALL
-    sgx_status_t status = second_thread_demo_call(global_eid);
-    if (status != SGX_SUCCESS) {
-        printf("Call to second_thread_demo_call has failed.\n");
-    }
-
-/*
-    // Bench ECALL
-    printf("[Enclave] Benching empty ECALL now\n");
-    bench_ecall(false);
-    bench_ecall(true);
-
-    // Bench OCALL
-    printf("[Enclave] Benching empty OCALL now\n");
-    call_ocall_bench(false);
-    call_ocall_bench(true);
-*/
-
-    // Wait for termination of other thread
-    printf("Waiting for termination of 2nd thread\n");
-    res = pthread_join(second_thread, nullptr);
-    if (res != 0) {
-        printf("Waiting for termination of 2nd thread failed\n");
-    }
+    // Run tests
+    run_enclave_test();
 
     // Now destroy the enclave
-    printf("Now destroying the enclave\n");
-    res = sgx_destroy_enclave(global_eid);
+    // TODO: currently hangs, because lwIP and tunnel thread not yet notified
+    printf("Now destroying the enclave (TODO: currently hangs; press Ctrl+C, restart SENG Server)\n");
+    sgx_status_t res = sgx_destroy_enclave(global_eid);
     if (res != SGX_SUCCESS) {
         printf("Enclave destruction failed\n");
     }
     
-    /* signal demo */
-    printf("Final value of signal handler-call count: %d\n", call_count);
-
     return 0;
 }
 
-void *run_enclave_test(void *arg) {
-    (void)(arg); // UNUSED
-
+void run_enclave_test() {
     printf("Calling Enclave Demo\n");
-    sgx_status_t status = t_sgxssl_call_apis(global_eid);
+    sgx_status_t status = t_sgxssl_call_apis(global_eid, (int) dst_ip4.s_addr);
     if (status != SGX_SUCCESS) {
         printf("Call to t_sgxssl_call_apis has failed.\n");
         printf("Error Status: %d\n", status);
 //        return 1;    //Test failed
     }
     printf("Finished Enclave Demo\n");
-    return nullptr;
-}
-
-int empty_ocall() {
-    return 1337;
-}
-
-int empty_switchless_ocall() {
-    return 1337;
 }

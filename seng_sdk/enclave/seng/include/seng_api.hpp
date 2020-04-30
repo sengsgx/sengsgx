@@ -6,6 +6,9 @@ extern "C" {
 #endif
 
 int init_seng_runtime(const char *server_ip, short server_port);
+/* TODO: add shutdown_seng_runtime();
+ * which terminates lwIP and tunnel thread, s.t. sgx_destroy_enclave() does not hang anymore
+ */
 
 /* --------------------------------- */
 
