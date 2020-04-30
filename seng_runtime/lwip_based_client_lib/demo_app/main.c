@@ -7,10 +7,18 @@
 #include <unistd.h>
 #include <string.h>
 
+const char *USAGE = "demoapp <dst_ip4>\n";
+
 /* Connect via TCP to destination, send a hello message and shutdown. */
 int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Wrong number of arguments\n");
+        printf("%s", USAGE);
+        return EXIT_FAILURE;
+    }
+
     int sockfd = -1;
-    const char *ip_addr = "192.168.178.45";
+    const char *ip_addr = argv[1];
     const short port = 8391;
 
     struct sockaddr_in dst = {
@@ -27,6 +35,9 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Failed to open socket\n");
         return EXIT_FAILURE;
     }
+
+    printf("Trying to connect to: %s\n", inet_ntoa(dst.sin_addr));
+    fflush(stdout);
 
     if (connect(sockfd, (struct sockaddr *)&dst, sizeof(dst)) < 0) {
         fprintf(stderr, "Failed to connect to destination %s:%d/tcp\n", ip_addr, port);

@@ -46,7 +46,7 @@ echo "running demo app"
 echo "*******************************************************************"
 
 ulimit -n 512
-${GRAPHENE}/Runtime/pal_loader "SGX" ${BIN} | \
+${GRAPHENE}/Runtime/pal_loader "SGX" ${BIN} "$@" | \
     grep --line-buffered -v "^setsockopt: Invalid argument$" # TODO: caused by graphene-unsupported socket options
 
 echo "*******************************************************************"
