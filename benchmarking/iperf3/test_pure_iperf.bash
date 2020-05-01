@@ -26,7 +26,7 @@ echo "*******************************************************************"
 
 ulimit -n 512
 #${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} "$@"
-sudo nice -n -20 ${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} --reverse --client 192.168.178.45 --len 8K --bandwidth 1000M
+sudo nice -n -20 ${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} --reverse --client "$1" --len 8K --bandwidth 1000M
 
 echo "*******************************************************************"
 
