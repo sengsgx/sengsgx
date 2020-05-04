@@ -1,3 +1,4 @@
 *.manifest.sgx
 *.sig
 *.token
+office_data/
