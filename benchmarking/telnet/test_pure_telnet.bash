@@ -1,12 +1,4 @@
 #!/bin/bash
-pushd ~/sgx-ra-tls/
-SGX_MODE=HW make openssl/libnonsdk-ra-attester.a || exit 1
-popd
-
-pushd ~/client_enclave/lwip_based_client_lib/build/
-SGX_MODE=HW make -j4 || exit 1
-popd
-
 GRAPHENE=~/sgx-ra-tls/deps/graphene/
 BIN=`which telnet`
 NAME=`basename "${BIN}"_pure`
@@ -33,7 +25,7 @@ ${GRAPHENE}/Pal/src/host/Linux-SGX/signer/pal-sgx-get-token \
 echo "*******************************************************************"
 
 ulimit -n 512
-sudo nice -n -20 ${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} -4 "$@" #| grep --text "app_time_in_usec"
+sudo nice -n -20 ${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} -4 "$@"
 
 echo "*******************************************************************"
 

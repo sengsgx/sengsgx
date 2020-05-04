@@ -4,9 +4,6 @@ loader.env.MALLOC_CHECK_ = 1
 loader.debug_type = none
 loader.syscall_symbol = syscalldb
 
-sgx.trusted_files.libappbench = file:../../sgx-ra-tls/deps/graphene/Runtime/libapp_bench_onload.so
-loader.env.LD_PRELOAD = /lib/libapp_bench_onload.so
-
 sgx.rpc_thread_num = 3
 
 fs.mount.lib.type = chroot

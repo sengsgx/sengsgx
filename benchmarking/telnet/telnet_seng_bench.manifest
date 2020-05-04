@@ -4,7 +4,8 @@ loader.env.MALLOC_CHECK_ = 1
 loader.debug_type = none
 loader.syscall_symbol = syscalldb
 
-loader.env.LD_PRELOAD = /lib/libseng_ossl_double_onload.so
+sgx.trusted_files.libappbench = file:../../sgx-ra-tls/deps/graphene/Runtime/libapp_bench_onload.so
+loader.env.LD_PRELOAD = /lib/libapp_bench_onload.so /lib/libseng_ossl_double_onload.so
 
 sgx.rpc_thread_num = 5
 

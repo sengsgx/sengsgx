@@ -9,7 +9,7 @@ popd
 
 GRAPHENE=~/sgx-ra-tls/deps/graphene/
 BIN=`which telnet`
-NAME=`basename "${BIN}"_seng`
+NAME=`basename "${BIN}"_seng_bench`
 MANI="${NAME}.manifest"
 
 # generate graphene-sgx manifest with secure file hashes
@@ -33,7 +33,7 @@ ${GRAPHENE}/Pal/src/host/Linux-SGX/signer/pal-sgx-get-token \
 echo "*******************************************************************"
 
 ulimit -n 512
-sudo nice -n -20 ${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} -4 "$@"
+sudo nice -n -20 ${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} -4 "$@" #| grep --text "app_time_in_usec"
 
 echo "*******************************************************************"
 
