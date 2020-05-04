@@ -3473,10 +3473,10 @@ index 0000000..d1a59f7
 +multi on
 diff --git a/my_etc_files/hosts b/my_etc_files/hosts
 new file mode 100644
-index 0000000..686619c
+index 0000000..4ddb3fd
 --- /dev/null
 +++ b/my_etc_files/hosts
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,14 @@
 +127.0.0.1 localhost
 +::1 localhost ip6-localhost ip6-loopback
 +fe00::0	ip6-localnet
@@ -3484,29 +3484,13 @@ index 0000000..686619c
 +ff02::1	ip6-allnodes
 +ff02::2	ip6-allrouters
 +
-+# For new API
++
++# TODO: IAS IP has to be kept up-to-date until IAS resolv of SENG Runtime init
++# code works as expected (currently wrongly redirected to lwIP?)
++
++# IAS Server for new API (still correct on 04.05.2020)
 +40.87.90.88 api.trustedservices.intel.com
 +
-+# For old API
-+18.213.212.17 test-as.sgx.trustedservices.intel.com
-+34.233.76.225 test-as.sgx.trustedservices.intel.com
-+35.170.91.60 test-as.sgx.trustedservices.intel.com
-+
-+#3.92.36.62 test-as.sgx.trustedservices.intel.com
-+#34.229.8.27 test-as.sgx.trustedservices.intel.com
-+#52.45.130.142 test-as.sgx.trustedservices.intel.com
-+
-+#34.197.155.37 test-as.sgx.trustedservices.intel.com
-+#3.89.51.73 test-as.sgx.trustedservices.intel.com
-+#3.213.108.86 test-as.sgx.trustedservices.intel.com
-+
-+#54.242.184.79 test-as.sgx.trustedservices.intel.com
-+#54.205.7.250 test-as.sgx.trustedservices.intel.com
-+#52.23.102.57 test-as.sgx.trustedservices.intel.com
-+
-+#18.210.146.127 test-as.sgx.trustedservices.intel.com
-+#52.203.92.184 test-as.sgx.trustedservices.intel.com
-+#35.169.102.107 test-as.sgx.trustedservices.intel.com
 diff --git a/my_etc_files/localtime b/my_etc_files/localtime
 new file mode 120000
 index 0000000..92ba4ff
@@ -3517,10 +3501,10 @@ index 0000000..92ba4ff
 \ No newline at end of file
 diff --git a/my_etc_files/nsswitch.conf b/my_etc_files/nsswitch.conf
 new file mode 100644
-index 0000000..0be6b6e
+index 0000000..ba59980
 --- /dev/null
 +++ b/my_etc_files/nsswitch.conf
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,23 @@
 +# /etc/nsswitch.conf
 +#
 +# Example configuration of GNU Name Service Switch functionality.
@@ -3532,8 +3516,10 @@ index 0000000..0be6b6e
 +shadow:         compat
 +gshadow:        files
 +
++# TODO: need to use file-based resolution for IAS until resolv of SENG Runtime
++# init code works as expected for IAS (currently wrongly redirected to lwIP?)
 +#hosts:          files dns
-+hosts:          files #dns
++hosts:          files
 +networks:       files
 +
 +protocols:      db files
