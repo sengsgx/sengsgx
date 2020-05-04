@@ -1,0 +1,67 @@
+loader.preload = file:../../sgx-ra-tls/deps/graphene/Runtime/libsysdb.so
+loader.env.LD_LIBRARY_PATH = /lib
+loader.debug_type = none
+loader.syscall_symbol = syscalldb
+
+#loader.env.LD_PRELOAD = /lib/libapp_bench_onload.so
+#sgx.trusted_files.libappbench = file:../../sgx-ra-tls/deps/graphene/Runtime/libapp_bench_onload.so
+
+fs.mount.lib.type = chroot
+fs.mount.lib.path = /lib
+fs.mount.lib.uri = file:../../sgx-ra-tls/deps/graphene/Runtime
+
+fs.mount.bin.type = chroot
+fs.mount.bin.path = /bin
+fs.mount.bin.uri = file:/bin
+
+fs.mount.usrlib.type = chroot
+fs.mount.usrlib.path = /usr/lib
+fs.mount.usrlib.uri = file:/usr/lib
+
+sgx.rpc_thread_num = 2
+
+#--------------------------
+#(a) default / most common
+sgx.enclave_size = 256M
+sys.brk.size = 32M
+sys.stack.size = 4M
+
+sgx.thread_num = 4
+#--------------------------
+#(b) def, reduced
+#sgx.enclave_size = 256M
+#sys.brk.size = 4M
+#sys.stack.size = 256K
+
+#sgx.thread_num = 4
+#--------------------------
+#(c) min, recuded
+#sgx.enclave_size = 128M
+#sys.brk.size = 4M
+#sys.stack.size = 256K
+
+#sgx.thread_num = 2
+#--------------------------
+
+# sgx-related
+sgx.trusted_files.ld = file:../../sgx-ra-tls/deps/graphene/Runtime/ld-linux-x86-64.so.2
+sgx.trusted_files.libdl = file:../../sgx-ra-tls/deps/graphene/Runtime/libdl.so.2
+sgx.trusted_files.libpthread = file:../../sgx-ra-tls/deps/graphene/Runtime/libpthread.so.0
+sgx.trusted_files.libc = file:../../sgx-ra-tls/deps/graphene/Runtime/libc.so.6
+sgx.trusted_files.libm = file:../../sgx-ra-tls/deps/graphene/Runtime/libm.so.6
+
+sgx.trusted_files.libprotobufc = file:../../sgx-ra-tls/deps/graphene/Runtime/libprotobuf-c.so.1
+sgx.trusted_files.libresolv = file:../../sgx-ra-tls/deps/graphene/Runtime/libresolv.so.2
+sgx.trusted_files.libnssdnsso2 = file:../../sgx-ra-tls/deps/graphene/Runtime/libnss_dns.so.2
+sgx.trusted_files.libnssfilesso2 = file:../../sgx-ra-tls/deps/graphene/Runtime/libnss_files.so.2
+
+sgx.trusted_files.libsgx_uae_service = file:../../sgx-ra-tls/deps/graphene/Runtime/libsgx_uae_service.so
+
+sgx.trusted_files.libcrypto = file:../../sgx-ra-tls/deps/graphene/Runtime/libcrypto.so.1.0.0
+sgx.trusted_files.libz = file:../../sgx-ra-tls/deps/graphene/Runtime/libz.so.1
+sgx.trusted_files.libssl = file:../../sgx-ra-tls/deps/graphene/Runtime/libssl.so.1.0.0
+
+sgx.trusted_files.libcxx = file:../../sgx-ra-tls/deps/graphene/Runtime/libstdc++.so.6
+sgx.trusted_files.libgcc = file:../../sgx-ra-tls/deps/graphene/Runtime/libgcc_s.so.1
+
+sgx.trusted_files.libprotobufcpp = file:../../sgx-ra-tls/deps/graphene/Runtime/libprotobuf.so.9
