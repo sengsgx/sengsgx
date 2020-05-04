@@ -180,7 +180,7 @@ namespace seng {
         if (success) {
             ip_addr_t dns_server {};
             // TODO: adapt to your needs, e.g., to internal resolver
-            // TODO: make this dynamic in the future
+            // TODO: parse trusted /etc/resolv.conf file and use that IP instead
             IP_ADDR4(&dns_server, 8, 8, 8, 8);
             dns_setserver(0, &dns_server);
         }
