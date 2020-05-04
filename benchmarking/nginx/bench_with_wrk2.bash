@@ -10,9 +10,9 @@ if [ ! -d results ]; then
 fi
 
 FILES=( "" )
-#LOADS=( `seq 1000 1000 20000` ) # LibOS/-SENG
-#LOADS=( `seq 1000 3000 52000` ) # native
-LOADS=( `seq 1000 3000 25000` `seq 26000 1000 40000` `seq 43000 3000 49000` ) # SDK-SENG full run
+#LOADS=( `seq 1000 1000 20000` ) # NGINX "pure" and "SENG" mode
+#LOADS=( `seq 1000 3000 52000` ) # NGINX "native" mode
+LOADS=( `seq 1000 3000 25000` `seq 26000 1000 40000` `seq 43000 3000 49000` ) # SENG SDK port of NGINX
 
 RUNS=5
 
