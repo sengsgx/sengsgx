@@ -39,9 +39,9 @@ Switchless E/OCALLs are used to speed up the tunnel operations.
     openssl rsa -in app_enclave_private.pem -pubout -out app_enclave_public.pem
     ```
 
-6. add the SENG server public key to the SENG SDK by replacing `"ADD_YOURS"` in `seng_sdk/enclave/seng/src/DT_SSLEngineClient_OpenSSL.cpp:52` with the public key (*without* newlines)
+6. add the SENG Server public key (certificate) to the SENG SDK by replacing `"ADD_YOURS"` in `seng_sdk/enclave/seng/src/DT_SSLEngineClient_OpenSSL.cpp:52` with the public key (*without* newlines)
 
-7. build SENG SDK libraries with demo app, followed by SENG-NGINX:
+7. build SENG SDK libraries with demo app, followed by the SENG SDK port of NGINX:
     ```
     cd seng_sdk/
     docker-compose run --user encl-dev seng-sdk
@@ -146,11 +146,11 @@ Perform the following steps:
 * run the SENG SDK port of NGINX as described above and check that it has successfully connected to the SENG Server
 * check that the `LOADS` variable in `bench_with_wrk2.bash` is set to the desired request rates
 * run the benchmarking script with the IPv4 address under which SENG NGINX is reachable:
-```
-# [@seng-runtime / @external-host]
-cd benchmarking/nginx/
-./bench_with_wrk2.bash <nginx_ip>
-```
+    ```
+    # [@seng-runtime / @external-host]
+    cd benchmarking/nginx/
+    ./bench_with_wrk2.bash <nginx_ip>
+    ```
 
 Notes:
 * you must adapt the SENG Server address in the `init_seng_runtime(..)` call of the NGINX SENG SDK port if you run them on different machines

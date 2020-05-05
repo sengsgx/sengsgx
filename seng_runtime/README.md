@@ -56,7 +56,7 @@ Network traffic of shielded apps only passes through the protected, attested DTL
 
 
 ## <a name="run" /> Running the SENG Runtime and its Demo App
-**CAUTION**: in rare cases the shutdown process of the SENG Runtime causes a crash in Graphene with a 0x0 or SEGFAULT signal spam; we have not yet figured out why it happens sometimes; (might be fixed in newer Graphene versions where several race conditions/bugs got fixed)
+**CAUTION**: in rare cases the shutdown process of the SENG Runtime causes a crash in Graphene with a 0x0 or SEGFAULT signal spam; we have not yet figured out why it sometimes happens; (might be fixed in newer Graphene versions where several race conditions/bugs got fixed)
 
 ### Integration into Graphene-SGX Manifest
 The current prototype of the SENG Runtime integrates into Graphene-SGX as middle layer using the `LD_PRELOAD` primitive of the Graphene manifest file:
@@ -125,9 +125,8 @@ netcat should have received the "Hello world!" message.
 ## <a name="bench" /> Running and Benchmarking the real-world SENG Runtime sample Apps
 The SENG Runtime ships with support for running 4 real-world applications: iPerf3, cURL, Telnet and NGINX.
 All required files and scripts are located in the respective `benchmarking/` directories (`iperf3/`, `curl/`, `telnet/`, `nginx/`).
-For each of the applications, we provide build instructions and run scripts for local testing of the apps.
-We also provide descriptions on how we have benchmarked the apps.
-In the descriptions, we distinguish the following 3 modes of operation:
+For each of the applications, we provide build instructions and scripts for running and benchmarking the app.
+During benchmarking, we distinguish the following 3 modes of operation:
 * *"native"* refers to native execution on Linux w/o Graphene and w/o SENG
 * *"pure"* refers to execution inside Graphene-SGX, but w/o SENG
 * *"seng"* refers to execution inside Graphene-SGX *with* SENG enabled
@@ -188,7 +187,7 @@ Note: The test script uses 8kB buffers, runs for 10 seconds, limits the bandwidt
 
 
 #### Benchmarking iPerf3
-The benchmark scripts for iPerf3 are located in `benchmarking/iperf3/` and basically run multiple iterations of the iPerf3 test with step-wise increasing bandwidth.
+The benchmark scripts for iPerf3 are located in `benchmarking/iperf3/` and basically run multiple iterations of the iPerf3 test with step-wise increasing bandwidth (default: 5 iterations, 100 Mbps steps till 1 Gbps).
 The prerequisites are the same ones as for the iPerf3 test script.
 For analysis, we suggest to run the iPerf3 server with the '--json' option:
 ```
@@ -237,7 +236,7 @@ The benchmark scripts for cURL are located in `benchmarking/curl/` and fetch res
 Please note that we have self-hosted a NGINX server for our evaluation which hosted files with 1KB data, 10KB, 100KB, 1MB, 10MB, etc. (cf. bench script).
 The script currently only fetches the root page (`"/"`).
 To enable the iterative fetching, please uncomment the alternative defintion of the `FILES` variable and host the respective files.
-Measurement is done via the cURL built-in `time_total` option.
+Measurement is done via the cURL built-in `time_total` option and the results are stored in the `results/` directory.
 
 Bench cURL in the different modes (run inside SENG Runtime container):
 * native: `./benchmark_native_curl.bash <host_ip4>`
@@ -284,7 +283,7 @@ Examples:
 
 Notes/Limitations:
 * currently only IPv4 (`'-4'`) is supported
-* the target port has to be explicitly defined, because of the current limited service-port resolution (SENG)
+* the target port has to be explicitly defined, because of the currently limited service-port resolution (SENG)
 * Graphene-SGX's current buffering of stdout/stderr can cause missing user output till the next flush, e.g., when running telnet w/o arguments; the output worked fine for us in the HTTP example; the delayed output does not(!) affect functionality, but only user experience in certain cases
 
 
@@ -345,7 +344,7 @@ Note: NGINX running under the SENG Runtime currently does not correctly handle c
 #### <a name="benchnginxruntime" /> Benchmarking NGINX
 The script for benchmarking NGINX (`bench_with_wrk2.bash`) is located in `benchmarking/nginx/`.
 The script uses `wrk2` to query the NGINX demo page (`"/"`) with step-wise increasing request rate and measure the per request latency.
-The measurement results are parsed into a CSV format for simplified analysis.
+The measurement results are parsed into a CSV format for simplified analysis and are stored in the `results/` directory.
 
 Preparation: The script includes 3 different definitions of the `LOADS` variable which defines the request rates used by the benchmark.
 Choose the one matching your NGINX mode or adapt to your needs.
@@ -363,7 +362,7 @@ Note: If running the SENG Runtime and SENG Server on separate hosts, you have to
 
 
 #### <a name="nginxshadow" /> Running NGINX with auto-nat/port shadowing enabled (Experimental!)
-The SENG Runtime also supports NGINX when the experimental auto-nat/port shadowing feature of SENG is enabled (cf. [build instructions](#build)).
+The SENG Runtime also supports running NGINX with SENG's experimental auto-nat/port shadowing feature enabled (cf. [build instructions](#build)).
 The ShadowServer of the SENG Server (cf. [server section](../seng_server/index.html#shadowsrv)) will automatically add `DNAT` rules on the NGINX `listen()` call to make the NGINX enclave reachable under the client host IP (in addition to the Enclave IP).
 The client host IP is the source IP of the DTLS tunnel as observed by the SENG Server.
 All other aspects of running NGINX with the SENG Runtime remain the same as described above.
@@ -385,7 +384,7 @@ Running:
     ```
     docker-compose run --user encl-dev seng-runtime
     cd ~/benchmarking/nginx
-    ./nginx_seng_test.bash
+    ./test_seng_nginx.bash
     ```
 4. use netcat to connect to NGINX via two options:
     * via the *assigned Enclave IP* (cf. server output) on port `4711/tcp`

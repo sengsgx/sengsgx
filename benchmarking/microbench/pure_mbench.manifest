@@ -35,7 +35,7 @@ sgx.thread_num = 4
 
 #sgx.thread_num = 4
 #--------------------------
-#(c) min, recuded
+#(c) min, reduced
 #sgx.enclave_size = 128M
 #sys.brk.size = 4M
 #sys.stack.size = 256K

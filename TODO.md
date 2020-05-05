@@ -22,20 +22,20 @@ The following is a list of unordered todos.
 
 ### SENG Runtime
 * remove SENG-dependencies from "pure" manifest files
-* don't link shadow socket files if auto-nat/listen shadowing is disabled
+* don't link shadow socket files if auto-nat/port shadowing is disabled
 * fix NGINX termination
 * IAS IP currently hardcoded in trusted hosts file (only affects initialization code)
 
 
 ### Port Shadowing / Automatic NAT [optional, experimental]
-* Runtime: remove hardcoded ShadowServer IP and make it instead use the SENG tunnel interface IP(s)
+* Server/Runtime: remove hardcoded ShadowServer IP and make it instead use the SENG tunnel interface IP(s)
 * Server: finish support for automatic cleanup of shadowing rules on a server socket close
 * Cli.Tool: add user/system access policy support in client helper tool
 * port ShadowServer and Cli.Tool from mbedTLS to OpenSSL
 
 
 ### SENG SDK
-* currently SDK and PSW are installed inside the container, i.e., on restarts/reinstantiation, both are gone again; temporary work-arounded by adding the option to cause a direct re-install on container session start if it has been compiled before
+* currently the Intel SGX SDK and PSW are dynamically installed inside the container, i.e., on restarts/reinstantiation, both are gone again; temporary work-arounded by adding the option to cause a direct re-install on container session start if it has been compiled before
 * shutdown API for SENG SDK (requires lwIP + tunnel thread termination)
-* add support to SENG NGINX to change SENG Server IP+Port via NGINX config file
+* add support to SENG SDK port of NGINX to change SENG Server IP+Port via NGINX config file
 * SENG SDK uses/has no fs-shield yet

@@ -114,7 +114,7 @@ SENG SDK Demo App and SENG SDK NGINX port as the SENG Server address. If you
 want to use a different SENG Server address, you have to manually adapt them at the
 moment:
 * SENG Runtime: [DT_RaSSLTunnelNetif_OpenSSL.cpp:58/59](seng_runtime/lwip_based_client_lib/dtls_tunnel_netif/src/DT_RaSSLTunnelNetif_OpenSSL.cpp#L58)
-* SENG SDK Demo App: [app_enclave.cpp:30](seng_sdk/enclave/app/src/app_enclave.cpp#L30)
+* SENG SDK Demo App: [app_enclave.cpp:28](seng_sdk/enclave/app/src/app_enclave.cpp#L30)
 * SENG SDK NGINX port: [nginx-1.10.3/src/os/seng/trusted/ngx_seng_init.c:42](seng_sdk/ported_external_apps/WIP_nginx_seng.patch#L7208)
 
 
@@ -149,7 +149,7 @@ If you change the Enclave Subnetworks, you also have to adapt the IP addresses o
 
 
 
-### <a name="shadowsrv" /> Running the SENG Server with enabled Shadow Server (experimental!)
+### <a name="shadowsrv" /> Running the SENG Server with enabled Shadow Server (Experimental!)
 Note: support for automatic creation of DNAT rules for SENG Runtime server sockets by
 the Shadow Server is experimental and incomplete. Note that the SENG Runtime server
 sockets will always be reachable through their Enclave IP(s) independent of the Shadow
@@ -161,6 +161,7 @@ with port X, the Shadow Server will create DNAT rules for the host OUTPUT and PR
 nat tables to forward traffic targeting the *host* client IP and port X to the Enclave IP of the
 SENG app. If port X is already in use by the client *host*, no rules will be added and the
 listen call of the SENG app will fail with EADDRINUSE.
+The Shadow Server communicates with a client-side helper tool for the detection of blocked host ports.
 
 #### Preparation:
 1. choose `192.168.28.0/24` as the only Enclave Subnetwork

@@ -3,7 +3,7 @@
 ## Overview
 SENG enables gateway firewalls to centrally enforce per--application policies.
 SENG consists of the gateway-located SENG Server and two alternative client-side 
-components: SENG Runtime and SENG SDK. While the client-side compoments shield
+components: SENG Runtime and SENG SDK. While the client-side components shield
 applications using Intel SGX, the SENG Server authenticates their network traffic and 
 enables the gateway firewall to enforce rules on a per-app granularity.
 
@@ -12,7 +12,7 @@ The SENG repository is structured in the following way:
 SENG base container used for compiling [sgx-ra-tls](https://github.com/cloud-security-research/sgx-ra-tls)
 and [Graphene-SGX](https://github.com/oscarlab/graphene)
 
-* `benchmarking/` -- contains scripts and manifests for running a set of real-world apps
+* `benchmarking/` -- contains scripts and manifests for running and benchmarking a set of real-world apps
 with the SENG Runtime
 
 * `patches/` -- contains patch files for Graphene-SGX, sgx-ra-tls and [lwIP](https://savannah.nongnu.org/projects/lwip/)
@@ -46,7 +46,7 @@ with development access to EPID-based Attestation:
     * Linkable:   <https://api.portal.trustedservices.intel.com/productes/dev-intel-software-guard-extensions-attestation-service-linkable>
     * Unlinkable: <https://api.portal.trustedservices.intel.com/productes/dev-intel-software-guard-extensions-attestation-service-unlinkable>
 
-    *NOTE*: The links only work when logged in. Both links are given on the `/EPID-attestation` page. Choose "Development Access".
+    Note: The links only work when logged in. Both links are given on the `/EPID-attestation` page. Choose "Development Access".
 3. After successful registration/confirmation, go to your subscription management page at <https://api.portal.trustedservices.intel.com/developer> to get your SPID and SubscriptionKey(s) required for the remote attestation.
 
 ### Patching and Building sgx-ra-tls and Graphene-SGX
@@ -78,7 +78,7 @@ EPID remote attestation service:
     * (a) SGX_LINKABLE_SIGNATURE
     * (b) SGX_UNLINKABLE_SIGNATURE
 
-6. add your own Intel Developer remote attestation subscription key to `sgx-ra-tls/ias-ra.c:228` by replacing the `"YYY"` with one of your two subscription keys
+6. add your own Intel Developer remote attestation subscription key to `sgx-ra-tls/ias-ra.c:211` by replacing the `"YYY"` with one of your two subscription keys
 
 #### Build the SENG Base Container
 Note: The base container will try to install headers for your host kernel version. Please use
@@ -143,10 +143,11 @@ only the SENG Server component will be built.
 
     build and install (cf. shipped instructions for installation); for demo, e.g.:
     ```
+    cd linux-sgx-driver-2a509c203533f9950fa3459fe91864051bc021a2/
     make
     sudo insmod isgx.ko
     ```
-    *note*: cf. driver readme for proper installation
+    Note: cf. driver readme for proper installation
 
 2. Install Intel SGX PSW version 2.7.1 at host, e.g., for Ubuntu 16.04 LTS:
     ```
@@ -167,7 +168,7 @@ only the SENG Server component will be built.
     sudo insmod sgx-ra-tls/deps/graphene/Pal/src/host/Linux-SGX/sgx-driver/graphene-sgx.ko
     sudo service aesmd restart
     ```
-    *note*: there is also a "load.sh" script, but it assumes proper installation of isgx.ko
+    Note: there is also a "load.sh" script, but it assumes proper installation of isgx.ko
 
 
 ## <a name="buildseng" /> Building the SENG Components
@@ -199,8 +200,8 @@ The SENG Runtime and SENG SDK both ship with a small Demo Application for testin
 The instructions for running the SENG components and Demo Apps are provided in the README files of the respective subdirectories:
 
 * [run the SENG Server](seng_server/index.html#run)
-* [run the SENG Runtime Demo App](seng_runtime/index.html#run)
-* [run the SENG SDK Demo App](seng_sdk/index.html#run)
+* [run the SENG Runtime and its Demo App](seng_runtime/index.html#run)
+* [run the SENG SDK and its Demo App](seng_sdk/index.html#run)
 
 
 
@@ -209,8 +210,8 @@ The SENG Runtime and SENG SDK ship with scripts for running and benchmarking a s
 The SENG Runtime supports running iPerf3, cURL, Telnet and NGINX, while the SENG SDK ships with a ported version of NGINX.
 The instructions for building, running and benchmarking the real-world apps with the SENG Runtime and SENG SDK are provided in the README files of the respective subdirectory:
 
-* [run the SENG Runtime real-world apps](seng_runtime/index.html#bench)
-* [run the SENG SDK port of NGINX](seng_sdk/index.html#bench)
+* [run and benchmark the SENG Runtime real-world apps](seng_runtime/index.html#bench)
+* [run and benchmark the SENG SDK port of NGINX](seng_sdk/index.html#bench)
 
 
 
