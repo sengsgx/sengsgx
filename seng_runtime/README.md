@@ -398,12 +398,16 @@ Running:
     netcat -4 -s <non_loopback_ip> 127.0.0.1 4711
     ```
 
-Limitations: Support for automatic removal of the ShadowServer DNAT rules is not yet complete and therefore disabled.
-Remove the rules manually after each test run:
-```
+Limitations:
+* Support for automatic removal of the ShadowServer DNAT rules is not yet complete and therefore disabled. Remove the rules manually after each test run:
+    ```
     sudo iptables -t nat -D SENG_output 1
     sudo iptables -t nat -D SENG_prerouting 1
-```
+    ```
+
+* The client-side helper tool currently always binds to `127.0.0.1:2834/tcp` (cf. `CliSockBlocker.cpp`, lines 122 and 123). You have to replace the IP with the client host IP used for the DTLS tunnels if running a setup with separate machines (cf. todos).
+
+* The client-side helper tool currently does not yet block the port explicitly for the host IP used for the DTLS tunnels (cf. todos).
 
 
 

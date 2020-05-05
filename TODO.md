@@ -31,6 +31,8 @@ The following is a list of unordered todos.
 * Server/Runtime: remove hardcoded ShadowServer IP and make it instead use the SENG tunnel interface IP(s)
 * Server: finish support for automatic cleanup of shadowing rules on a server socket close
 * Cli.Tool: add user/system access policy support in client helper tool
+* Cli.Tool: currently always binds to hardcode `127.0.0.1`, `2824/tcp`
+* Server/Cli.Tool: Server should inform Cli.Tool about host IP used for the DTLS tunnel (and DNAT), and Cli.Tool should block host port for that specific host IP
 * port ShadowServer and Cli.Tool from mbedTLS to OpenSSL
 
 
