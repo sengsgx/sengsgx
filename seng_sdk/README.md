@@ -58,6 +58,8 @@ Switchless E/OCALLs are used to speed up the tunnel operations.
     ../build_seng_nginx.bash
     ```
 
+    **CAUTION**: Changes to the EDL files currently require `make clean` to wipe the old stub files.
+
 
 ## <a name="run" /> Running the SENG SDK and its Demo App
 
