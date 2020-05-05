@@ -130,8 +130,9 @@ cd build/
 sudo ./src/seng_ossl_double_tunnel_server -d ../demo_sqlite3.db 127.0.0.1 12345
 ```
 The current SQLite3 demo database defines 2 enclave subnetworks: (i) `192.168.28.0/24` and (ii) `172.16.28.0/26`.
-Subnetwork (i) only whitelists the SENG SDK Demo App for client hosts from the internal subnetwork `10.0.0.0/26`.
-Subnetwork (ii) only whitelists the SENG SDK port of NGINX for clients from `10.0.0.0/26`.
+Subnetwork (i) only whitelists the SENG SDK Demo App for client hosts from the internal subnetwork `127.0.0.1/26`.
+Subnetwork (ii) only whitelists the SENG SDK port of NGINX for clients from `127.0.0.1/26`.
+In a real setup, you should adapt the host IP subnet(s), e.g., to `10.0.0.0/26`.
 Admins can define app-specific firewall rules by defining them on the IPs of (i), (ii) or both, for example:
 ```
 # [@host]
@@ -147,6 +148,8 @@ Please cf. [the SQL file](double_tunnel_openssl/seng_db_creator.sql) for the dem
 The `"enclave_subnets"` table defines the Enclave Subnetworks and the `"apps"` table specifies the whitelisted apps together with the client subnetwork for which they are allowed, as well as the Enclave Subnetwork from which to assign the Enclave IPs.
 If you change the Enclave Subnetworks, you also have to adapt the IP addresses of the `"tunFA"` interface and your firewall rules.
 
+Note: You can check the output of the SENG Server to compare whether the Enclave measurements match the entries in the database whitelist.
+The Enclave signer value is not yet used by the SENG Server.
 
 
 ### <a name="shadowsrv" /> Running the SENG Server with enabled Shadow Server (Experimental!)
