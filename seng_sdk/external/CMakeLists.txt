@@ -53,9 +53,10 @@ target_link_libraries(lwip ${LWIP_SANITIZER_LIBS})
 add_custom_command(OUTPUT ${PATH_TO_SSL}/package/lib64/libsgx_tsgxssl.a
         ${PATH_TO_SSL}/package/lib64/libsgx_tsgxssl_crypto.a
         ${PATH_TO_SSL}/package/lib64/libsgx_usgxssl.a
-        ${PATH_TO_SSL}/package/include/
         ${PATH_TO_SSL}/package/include/openssl
         ${PATH_TO_SSL}/package/lib64/libsgx_ttls.a
+        ${PATH_TO_SSL}/sgx/libsgx_usgxssl/libsgx_usgxssl.a
+        ${PATH_TO_SSL}/sgx/libsgx_tsgxssl/libsgx_tsgxssl.a
     COMMAND . ${SGX_PATH}/environment && DEBUG=0 make
     WORKING_DIRECTORY ${PATH_TO_SSL}
 )
