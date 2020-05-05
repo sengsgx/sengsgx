@@ -29,13 +29,13 @@ INSERT INTO enclave_subnets
 INSERT INTO apps
     VALUES(1,
         "DemoEnclave",
-        x'8795db4ce3df2a3964a91d4fb058f67b02b351f327439b073a113c7326929716',
+        x'd0d8837438142d663ee2be21fe2f142ca3fe3d509e749f419cd20d8f673129e0',
         x'be7403a5952075531158572a50b7eb613821df2e18bf6c8b6e1d646dbf42d1a0',
         0x0100007f,0xc0ffffff,1);
 
 INSERT INTO apps
     VALUES(2,
         "SDK-NGINX",
-        x'7c6ca940d705e8ffc9614c86526bf24dab2890e7711324694375e9b644e396ea',
+        x'42a5bd14b187bd85c369fa47a9fecbbfba7b73b3af6c111141a81dc4f46931bc',
         x'be7403a5952075531158572a50b7eb613821df2e18bf6c8b6e1d646dbf42d1a0',
         0x0100007f,0xc0ffffff,2);
