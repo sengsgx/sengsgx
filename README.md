@@ -117,8 +117,8 @@ We recommend testing your setup first without the exitless feature.
 
 
 #### Prepare SENG Server Certificate
-The SENG Server requires an RSA key pair for the DTLS tunnel connection. The public key
-file will be pinned by the SENG Runtime.
+The SENG Server requires an RSA key pair for the DTLS tunnel connection.
+The certificate will be pinned by the SENG Runtime and SENG SDK.
 
 10. generate RSA key pair for SENG Server:
     ```

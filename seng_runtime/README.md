@@ -337,7 +337,7 @@ In all cases you can query the NGINX demo page via a standard HTTP request:
 ```
 (note: '\n' refers to pressing 'enter')
 
-Note: NGINX running under the SENG Runtime currently does not correctly handle ctrl+C for shutdown (cf. todo). Either press ctrl+C and then connect to it via netcat to trigger a graceful shutdown, or you have to kill the container instead.
+Note: NGINX running under the SENG Runtime currently does not correctly handle ctrl+C for shutdown (cf. todo). Either press ctrl+C and then connect to it via netcat to trigger a graceful shutdown, or kill the container instead.
 
 
 

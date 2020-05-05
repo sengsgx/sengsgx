@@ -39,7 +39,10 @@ Switchless E/OCALLs are used to speed up the tunnel operations.
     openssl rsa -in app_enclave_private.pem -pubout -out app_enclave_public.pem
     ```
 
-6. add the SENG Server public key (certificate) to the SENG SDK by replacing `"ADD_YOURS"` in `seng_sdk/enclave/seng/src/DT_SSLEngineClient_OpenSSL.cpp:52` with the public key (*without* newlines)
+6. add the SENG Server certificate to the SENG SDK by replacing `"ADD_YOURS"` in `DT_SSLEngineClient_OpenSSL.cpp:52`(located in `seng_sdk/enclave/seng/src/`) with the certificate data (*without* newlines); the following command should provide the certificate data w/o header/footnote and w/o newlines for copying:
+    ```
+    sed '1d;$d' seng_server/srv_cert.pem | tr -d \\n
+    ```
 
 7. build SENG SDK libraries with demo app, followed by the SENG SDK port of NGINX:
     ```
@@ -136,6 +139,9 @@ Afterwards you can query the NGINX demo page via a standard HTTP request:
 > \n
 ```
 (note: '\n' refers to pressing 'enter')
+
+Note: NGINX shutdown on ctrl+C is currently not yet working. Either press ctrl+C and then connect to it via netcat to trigger a shutdown, or kill the container instead.
+
 
 ### Benchmarking
 The benchmarking script is the same one used for the SENG Runtime and is located in `benchmarking/nginx/bench_with_wrk2.bash` (cf. [SENG Runtime section](../seng_runtime/index.html#benchnginxruntime)).
