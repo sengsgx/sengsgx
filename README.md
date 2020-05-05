@@ -92,28 +92,30 @@ a standard Linux kernel.
     ```
 
 #### Build sgx-ra-tls and Graphene using the Base Container (w/o exitless)
-9. build sgx-ra-tls:
+9. build sgx-ra-tls and Graphene-SGX:
     ```
     cd base_container/
     docker-compose run --user encl-dev base-container
     cd ~/sgx-ra-tls/
     ./build.sh graphene
     make
-
-Note: By default Graphene-SGX is built **without** the experimental exitless O/ECALL pull request, as it can be instable and cause bugs/crashes in Graphene. Higher thread pressure, 
-e.g., caused by running all SENG components locally on the same host, particularly 
-increases the instability of exitless calls. If you want to test the SENG Runtime with
-experimental support for exitless O/ECALLs, you have 2 options to enable it:
-
-* (a) remove the # in line 120 of the patched `sgx-ra-tls/build.sh` file before running it
-* (b) after step 9, patch and recompile Graphene-SGX manually:
     ```
-    # [base-container]
-    cd ~/sgx-ra-tls/deps/graphene/
-    patch -p1 < ../../fixed_exitless_syscalls_pr405.patch
-    make SGX=1
-    ```
-We recommend testing your setup first without the exitless feature.
+
+    Note: By default Graphene-SGX is built **without** the experimental exitless O/ECALL pull request, as it can be instable and cause bugs/crashes in Graphene.
+    Higher thread pressure, e.g., caused by running all SENG components locally on the same host, particularly increases the instability of exitless calls.
+    If you want to test the SENG Runtime with experimental support for exitless O/ECALLs, you have 2 options to enable it:
+
+    * (a) remove the # in line 120 of the patched `sgx-ra-tls/build.sh` file before running it
+    * (b) after step 9, patch and recompile Graphene-SGX manually:
+        ```
+        # [base-container]
+        cd ~/sgx-ra-tls/deps/graphene/
+
+        # enable exitless O/ECALLs (can be instable)
+        patch -p1 < ../../fixed_exitless_syscalls_pr405.patch
+        make SGX=1
+        ```
+    We recommend testing your setup first without the exitless feature.
 
 
 #### Prepare SENG Server Certificate
