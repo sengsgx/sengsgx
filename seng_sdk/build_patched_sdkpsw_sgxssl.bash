@@ -44,7 +44,7 @@ sudo dpkg -i libsgx-enclave-common_2.7.101.3-xenial1_amd64.deb \
 sudo dpkg -i libsgx-enclave-common-dev_2.7.101.3-xenial1_amd64.deb \
         || exit 1
 
-echo "WARNING: consider running `sudo service aesmd restart` at host now"
+#echo "WARNING: consider running 'sudo service aesmd restart' at host now"
 
 popd
 popd

@@ -18,7 +18,6 @@ set (LWIP_INCLUDE_DIRS
 set (LWIP_INCLUDE_DIRS ${LWIP_INCLUDE_DIRS} PARENT_SCOPE)
 
 #include(${LWIP_CONTRIB_DIR}/ports/unix/Filelists.cmake)
-message("lblbl: ${CMAKE_CURRENT_SOURCE_DIR}/seng_lwip_port/Filelists.cmake")
 include(${CMAKE_CURRENT_SOURCE_DIR}/seng_lwip_port/Filelists.cmake)
 include(${LWIP_DIR}/src/Filelists.cmake)
 
