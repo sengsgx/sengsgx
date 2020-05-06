@@ -1,0 +1,173 @@
+diff --git a/Pal/src/host/FreeBSD/db_events.c b/Pal/src/host/FreeBSD/db_events.c
+index cea539b..752d480 100644
+--- a/Pal/src/host/FreeBSD/db_events.c
++++ b/Pal/src/host/FreeBSD/db_events.c
+@@ -75,7 +75,7 @@ int _DkEventSet (PAL_HANDLE event, int wakeup)
+                              UMTX_OP_WAKE, 1, NULL, NULL);
+     }
+ 
+-    return IS_ERR(ret) ? PAL_ERROR_TRYAGAIN : ret;
++    return IS_ERR(ret) ? -PAL_ERROR_TRYAGAIN : ret;
+ }
+ 
+ int _DkEventWaitTimeout (PAL_HANDLE event, uint64_t timeout)
+diff --git a/Pal/src/host/Linux-SGX/db_events.c b/Pal/src/host/Linux-SGX/db_events.c
+index 6e1548e..b8c29e3 100644
+--- a/Pal/src/host/Linux-SGX/db_events.c
++++ b/Pal/src/host/Linux-SGX/db_events.c
+@@ -25,6 +25,7 @@
+ 
+ #include "pal_defs.h"
+ #include "pal_linux_defs.h"
++#include "pal_linux_error.h"
+ #include "pal.h"
+ #include "pal_internal.h"
+ #include "pal_linux.h"
+@@ -67,7 +68,7 @@ int _DkEventSet (PAL_HANDLE event, int wakeup)
+                 ret = ocall_futex((int *) &event->event.signaled->counter,
+                                   FUTEX_WAKE, nwaiters, NULL);
+ 
+-                if (ret < 0)
++                if (IS_ERR(ret))
+                     atomic_set(event->event.signaled, 0);
+             }
+         }
+@@ -75,11 +76,9 @@ int _DkEventSet (PAL_HANDLE event, int wakeup)
+         // Only one thread wakes up, leave unsignaled
+         ret = ocall_futex((int *) &event->event.signaled->counter,
+                           FUTEX_WAKE, 1, NULL);
+-        if (ret < 0)
+-             return ret;
+     }
+ 
+-    return ret;
++    return IS_ERR(ret) ? -PAL_ERROR_TRYAGAIN : ret;
+ }
+ 
+ int _DkEventWaitTimeout (PAL_HANDLE event, uint64_t timeout)
+@@ -94,11 +93,13 @@ int _DkEventWaitTimeout (PAL_HANDLE event, uint64_t timeout)
+         do {
+             ret = ocall_futex((int *) &event->event.signaled->counter,
+                               FUTEX_WAIT, 0, timeout ? &waittime : NULL);
+-            if (ret < 0) {
+-                if (ret == -PAL_ERROR_TRYAGAIN)
++            if (IS_ERR(ret)) {
++                if (ERRNO(ret) == EWOULDBLOCK) {
+                     ret = 0;
+-                else
++                } else {
++                    ret = unix_to_pal_error(ERRNO(ret));
+                     break;
++                }
+             }
+         } while (event->event.isnotification &&
+                  !atomic_read(event->event.signaled));
+@@ -119,11 +120,13 @@ int _DkEventWait (PAL_HANDLE event)
+         do {
+             ret = ocall_futex((int *) &event->event.signaled->counter,
+                               FUTEX_WAIT, 0, NULL);
+-            if (ret < 0) {
+-                if (ret == -PAL_ERROR_TRYAGAIN)
++            if (IS_ERR(ret)) {
++                if (ERRNO(ret) == EWOULDBLOCK) {
+                     ret = 0;
+-                else
++                } else {
++                    ret = unix_to_pal_error(ERRNO(ret));
+                     break;
++                }
+             }
+         } while (event->event.isnotification &&
+                  !atomic_read(event->event.signaled));
+diff --git a/Pal/src/host/Linux-SGX/db_mutex.c b/Pal/src/host/Linux-SGX/db_mutex.c
+index f6c39c2..5cedac2 100644
+--- a/Pal/src/host/Linux-SGX/db_mutex.c
++++ b/Pal/src/host/Linux-SGX/db_mutex.c
+@@ -27,6 +27,7 @@
+ 
+ #include "pal_defs.h"
+ #include "pal_linux_defs.h"
++#include "pal_linux_error.h"
+ #include "pal.h"
+ #include "pal_internal.h"
+ #include "pal_linux.h"
+@@ -86,11 +87,13 @@ int _DkMutexLockTimeout (struct mutex_handle * m, uint64_t timeout)
+          */
+         ret = ocall_futex((int *) m->locked, FUTEX_WAIT, MUTEX_LOCKED, timeout == -1 ? NULL : &timeout);
+ 
+-        if (ret < 0) {
+-            if (-ret == EWOULDBLOCK) {
+-                ret = -PAL_ERROR_TRYAGAIN;
+-                atomic_dec(&m->nwaiters);
+-                goto out;
++        if (IS_ERR(ret)) {
++            if (ERRNO(ret) == EWOULDBLOCK) {
++                if (timeout != NO_TIMEOUT) {
++                    ret = -PAL_ERROR_TRYAGAIN;
++                    atomic_dec(&m->nwaiters);
++                    goto out;
++                }
+             }
+             ret = unix_to_pal_error(ERRNO(ret));
+             atomic_dec(&m->nwaiters);
+diff --git a/Pal/src/host/Linux-SGX/sgx_enclave.c b/Pal/src/host/Linux-SGX/sgx_enclave.c
+index f65cd86..ddc7373 100644
+--- a/Pal/src/host/Linux-SGX/sgx_enclave.c
++++ b/Pal/src/host/Linux-SGX/sgx_enclave.c
+@@ -239,6 +239,10 @@ static int sgx_ocall_create_process(void * pms)
+     return 0;
+ }
+ 
++/* sgx_ocall_futex return unix errno instead of PAL_ERROR
++ * because PAL_ERROR doesn't distinguish ETIMEDOUT and EAGAIN.
++ * In futex case, they needs to be distinguished.
++ */
+ static int sgx_ocall_futex(void * pms)
+ {
+     ms_ocall_futex_t * ms = (ms_ocall_futex_t *) pms;
+@@ -252,7 +256,7 @@ static int sgx_ocall_futex(void * pms)
+     }
+     ret = INLINE_SYSCALL(futex, 6, ms->ms_futex, ms->ms_op, ms->ms_val,
+                          ts, NULL, 0);
+-    return IS_ERR(ret) ? unix_to_pal_error(ERRNO(ret)) : ret;
++    return ret;
+ }
+ 
+ static int sgx_ocall_socketpair(void * pms)
+diff --git a/Pal/src/host/Linux/db_events.c b/Pal/src/host/Linux/db_events.c
+index 42d4bad..01a15f5 100644
+--- a/Pal/src/host/Linux/db_events.c
++++ b/Pal/src/host/Linux/db_events.c
+@@ -72,7 +72,7 @@ int _DkEventSet (PAL_HANDLE event, int wakeup)
+                              NULL, NULL, 0);
+     }
+ 
+-    return IS_ERR(ret) ? PAL_ERROR_TRYAGAIN : ret;
++    return IS_ERR(ret) ? -PAL_ERROR_TRYAGAIN : ret;
+ }
+ 
+ int _DkEventWaitTimeout (PAL_HANDLE event, uint64_t timeout)
+diff --git a/Pal/src/host/Linux/db_mutex.c b/Pal/src/host/Linux/db_mutex.c
+index 4e9e55e..8b0a7ac 100644
+--- a/Pal/src/host/Linux/db_mutex.c
++++ b/Pal/src/host/Linux/db_mutex.c
+@@ -130,14 +130,13 @@ int _DkMutexLockTimeout (struct mutex_handle * m, uint64_t timeout)
+                     atomic_dec(&m->nwaiters);
+                     goto out;
+                 }
+-            } else {
++            }
+ #ifdef DEBUG_MUTEX
+-                printf("futex failed (err = %d)\n", ERRNO(ret));
++            printf("futex failed (err = %d)\n", ERRNO(ret));
+ #endif
+-                ret = unix_to_pal_error(ERRNO(ret));
+-                atomic_dec(&m->nwaiters);
+-                goto out;
+-            }
++            ret = unix_to_pal_error(ERRNO(ret));
++            atomic_dec(&m->nwaiters);
++            goto out;
+         }
+     }
+ 

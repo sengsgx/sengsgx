@@ -434,7 +434,7 @@ Note: The results can be different depending on whether Graphene-SGX has been bu
 The Graphene-SGX microbenchmark measures the initialization time from Graphene's `main()` function till the `main()` function of the loaded application.
 
 Preparation:
-1. enable printing of the startup timestamp by removing the comments in `sgx_main.c` line `830`, `841` and `842`, located in `sgx-ra-tls/deps/graphene/Pal/src/host/Linux-SGX/`
+1. enable printing of the startup timestamp by uncommenting lines lines `831`, `844` and `845` in `sgx_main.c` (located in `sgx-ra-tls/deps/graphene/Pal/src/host/Linux-SGX/`)
 
 2. recompile Graphene-SGX:
     ```

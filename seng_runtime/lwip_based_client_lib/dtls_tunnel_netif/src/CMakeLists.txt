@@ -48,7 +48,7 @@ ${CHALLENGER_LIBRARY_OPENSSL})
 # we don't need to link, bcs. we only need some of the headers (sgx_quote.h -> _report.h -> key.h -> attributes.h)
 #target_link_libraries(seng_tunnel_netif PRIVATE ${SGXSDK_LIBRARIES})
 
-# TODO: link static variant of OpenSSL? (and used exclude-libs option to avoid exposing symbols)
+# TODO: link static variant of OpenSSL? (and use exclude-libs option to avoid exposing symbols)
 target_link_libraries(seng_mbench_ossl_double_tunnel_netif PRIVATE CURL::libcurl
         OpenSSL::SSL
         OpenSSL::Crypto)

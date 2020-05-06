@@ -63,36 +63,45 @@ with the SENG Server.
     patch -p1 < ../patches/sgx-ra-tls_seng_changes.patch
     ```
 
+3. copy patch files for Graphene
+    ```
+    # copy graphene patch files
+    cp ../patches/pull_request_438.patch \
+       ../patches/graphene_patches.patch \
+       ../patches/fixed_exitless_syscalls_pr405.patch \
+       .
+    ```
+
 #### Configure Remote Attestation
 Note: The steps for the remote attestation are only required if one of the client components
 will be built (SENG Runtime or SDK).
 
-3. If you do not have an SPID and SubscriptionKey for the EPID-based Intel SGX Remote
+4. If you do not have an SPID and SubscriptionKey for the EPID-based Intel SGX Remote
 Attestation Service (IAS), please follow [the instructions above](#spid) to get them
 
-4. add your own Intel Developer SPID to `sgx-ra-tls/ra_tls_options.c`
+5. add your own Intel Developer SPID to `sgx-ra-tls/ra_tls_options.c`
 
     e.g., if your SPID is 473BA3(...), add 0x47, 0x3B, 0xA3,(...)
-5. adapt quote_type in `ra_tls_options.c` according to your quote type chosen for the
+6. adapt quote_type in `ra_tls_options.c` according to your quote type chosen for the
 EPID remote attestation service:
     * (a) SGX_LINKABLE_SIGNATURE
     * (b) SGX_UNLINKABLE_SIGNATURE
 
-6. add your own Intel Developer remote attestation subscription key to `sgx-ra-tls/ias-ra.c:211` by replacing the `"YYY"` with one of your two subscription keys
+7. add your own Intel Developer remote attestation subscription key to `sgx-ra-tls/ias-ra.c:211` by replacing the `"YYY"` with one of your two subscription keys
 
 #### Build the SENG Base Container
 Note: The base container will try to install headers for your host kernel version. Please use
 a standard Linux kernel.
 
-7. replace the container `userid` with your host UID (`id --user`) in `base_container/Dockerfile:11`
-8. build base container:
+8. replace the container `userid` with your host UID (`id --user`) in `base_container/Dockerfile:11`
+9. build base container:
     ```
     cd base_container/
     docker-compose build
     ```
 
 #### Build sgx-ra-tls and Graphene using the Base Container (w/o exitless)
-9. build sgx-ra-tls and Graphene-SGX:
+10. build sgx-ra-tls and Graphene-SGX:
     ```
     cd base_container/
     docker-compose run --user encl-dev base-container
@@ -105,8 +114,8 @@ a standard Linux kernel.
     Higher thread pressure, e.g., caused by running all SENG components locally on the same host, particularly increases the instability of exitless calls.
     If you want to test the SENG Runtime with experimental support for exitless O/ECALLs, you have 2 options to enable it:
 
-    * (a) remove the # in line 120 of the patched `sgx-ra-tls/build.sh` file before running it
-    * (b) after step 9, patch and recompile Graphene-SGX manually:
+    * (a) remove the # in line 121 of the patched `sgx-ra-tls/build.sh` file before running it
+    * (b) after step 10, patch and recompile Graphene-SGX manually:
         ```
         # [base-container]
         cd ~/sgx-ra-tls/deps/graphene/
@@ -122,7 +131,7 @@ a standard Linux kernel.
 The SENG Server requires an RSA key pair for the DTLS tunnel connection.
 The certificate will be pinned by the SENG Runtime and SENG SDK.
 
-10. generate RSA key pair for SENG Server:
+11. generate RSA key pair for SENG Server:
     ```
     cd seng_server/
     openssl req -x509 -newkey rsa:3072 -keyout srv_key.pem -out srv_cert.pem -days 365 -nodes
