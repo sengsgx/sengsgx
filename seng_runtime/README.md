@@ -135,6 +135,8 @@ If you run the SENG Runtime, the SENG Server and the helper tools (e.g., wrk2) o
 Furthermore, you have to ensure that all traffic is routed through the SENG Server host (gateway), e.g., via combination of standard `ip route` routing rules and `iptables` DNAT rules.
 For brevity, we only describe the setting for local testing.
 
+Note: Depending on whether you test locally, internally or with external target hosts, you might want to tweak the TCP Window size of lwIP (cf. [lwipopts.h](lwip_based_client_lib/include/lwipopts.h)).
+Sample configurations are provided.
 
 ### Preparation
 We build iPerf3, cURL, NGINX and wrk2 from source, whereas we use the apt version of Telnet:
@@ -153,6 +155,8 @@ By default, the SENG Runtime expects the SENG Server to listen on IP `127.0.0.1`
 
 ### iPerf3
 #### Testing iPerf3
+The test script runs iPerf3 for 10 seconds with a bandwidth (load) of max. 1 Gbps in reverse mode, i.e., the iPerf3 server to which it connects generates the traffic and the iPerf3 client (Enclave) receives it.
+
 Prerequisites:
 1. ensure that the SENG Server is running and using IP `127.0.0.1`, port `12345/udp`
 2. install iPerf3 on the host and run it in server mode (it will serve as traffic generator):
@@ -183,7 +187,7 @@ Run iPerf3 in "pure" mode (no SENG):
 ./test_pure_iperf.bash <host_ip4>
 ```
 
-Note: The test script uses 8kB buffers, runs for 10 seconds, limits the bandwidth to 1 Gbps and runs in reverse mode, i.e., the iPerf3 server (@host) generates traffic and the iPerf3 enclave receives it.
+Note: If you test locally and observe a high number of retransmissions, consider decreasing the TCP window size of lwIP.
 
 
 #### Benchmarking iPerf3

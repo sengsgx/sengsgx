@@ -93,7 +93,11 @@ void sys_unlock_tcpip_core(void);
 #define LWIP_TCP_KEEPALIVE	1
 
 #define TCP_MSS             1380
-/* Alternatives: 104000 (80 pools, scale 1), 260000 (190 pools, scale 7), 4096000 (3000 pools, scale 7) */
+/* Sample Configurations:
+ * local testing:     12000 TCP_WND,   15 pools
+ * default:          104000 TCP_WND,   80 pools, scale 1
+ * external target: 4096000 TCP_WND, 3000 pools, scale 7
+ */
 #define TCP_WND            104000
 #define LWIP_WND_SCALE      1
 #define TCP_RCV_SCALE       1 /* 7 */
