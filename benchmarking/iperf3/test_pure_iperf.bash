@@ -33,8 +33,9 @@ ${GRAPHENE}/Pal/src/host/Linux-SGX/signer/pal-sgx-get-token \
 echo "*******************************************************************"
 
 ulimit -n 512
-#${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} "$@"
 sudo nice -n -20 ${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} --reverse --client "${DST_IP}" --len 8K --bandwidth 1000M
+
+#sudo nice -n -20 timeout --foreground --signal=KILL 17s ${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} --reverse --client "${DST_IP}" --len 8K --bandwidth 1000M
 
 echo "*******************************************************************"
 
