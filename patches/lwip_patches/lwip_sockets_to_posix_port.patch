@@ -1,589 +1,8 @@
-diff --git a/contrib/ports/unix/port/sys_arch.c b/contrib/ports/unix/port/sys_arch.c
-index 113ac58..453f379 100644
---- a/contrib/ports/unix/port/sys_arch.c
-+++ b/contrib/ports/unix/port/sys_arch.c
-@@ -56,43 +56,26 @@
- #include <pthread.h>
- #include <errno.h>
- 
--#include "lwip/def.h"
-+#include <stdatomic.h>
- 
--#ifdef LWIP_UNIX_MACH
--#include <mach/mach.h>
--#include <mach/mach_time.h>
--#endif
-+#include "lwip/def.h"
- 
- #include "lwip/sys.h"
- #include "lwip/opt.h"
- #include "lwip/stats.h"
- #include "lwip/tcpip.h"
- 
-+static void cpu_relax(void) { asm volatile("pause\n": : :"memory"); }
-+
- static void
- get_monotonic_time(struct timespec *ts)
- {
--#ifdef LWIP_UNIX_MACH
--  /* darwin impl (no CLOCK_MONOTONIC) */
--  uint64_t t = mach_absolute_time();
--  mach_timebase_info_data_t timebase_info = {0, 0};
--  mach_timebase_info(&timebase_info);
--  uint64_t nano = (t * timebase_info.numer) / (timebase_info.denom);
--  uint64_t sec = nano/1000000000L;
--  nano -= sec * 1000000000L;
--  ts->tv_sec = sec;
--  ts->tv_nsec = nano;
--#else
-   clock_gettime(CLOCK_MONOTONIC, ts);
--#endif
- }
- 
--#if SYS_LIGHTWEIGHT_PROT
- static pthread_mutex_t lwprot_mutex = PTHREAD_MUTEX_INITIALIZER;
- static pthread_t lwprot_thread = (pthread_t)0xDEAD;
- static int lwprot_count = 0;
--#endif /* SYS_LIGHTWEIGHT_PROT */
--
--#if !NO_SYS
- 
- static struct sys_thread *threads = NULL;
- static pthread_mutex_t threads_mutex = PTHREAD_MUTEX_INITIALIZER;
-@@ -115,13 +98,19 @@ struct sys_mbox {
- 
- struct sys_sem {
-   unsigned int c;
-+    /*
-   pthread_condattr_t condattr;
-   pthread_cond_t cond;
-   pthread_mutex_t mutex;
-+     */
-+    atomic_flag cond;
-+    atomic_flag mutex;
-+    u8_t sleeper;
- };
- 
- struct sys_mutex {
--  pthread_mutex_t mutex;
-+  /*pthread_mutex_t mutex;*/
-+  atomic_flag spinlock;
- };
- 
- struct sys_thread {
-@@ -132,8 +121,12 @@ struct sys_thread {
- static struct sys_sem *sys_sem_new_internal(u8_t count);
- static void sys_sem_free_internal(struct sys_sem *sem);
- 
-+/*
- static u32_t cond_wait(pthread_cond_t * cond, pthread_mutex_t * mutex,
-                        u32_t timeout);
-+ */
-+static u32_t cond_wait(atomic_flag * cond, atomic_flag * mutex,
-+                       u32_t timeout);
- 
- /*-----------------------------------------------------------------------------------*/
- /* Threads */
-@@ -192,23 +185,22 @@ sys_thread_new(const char *name, lwip_thread_fn function, void *arg, int stacksi
-                         thread_wrapper,
-                         thread_data);
- 
--#ifdef LWIP_UNIX_LINUX
-   pthread_setname_np(tmp, name);
--#endif
- 
-   if (0 == code) {
-     st = introduce_thread(tmp);
-   }
- 
-   if (NULL == st) {
-+      /*
-     LWIP_DEBUGF(SYS_DEBUG, ("sys_thread_new: pthread_create %d, st = 0x%lx",
-                        code, (unsigned long)st));
-+                       */
-     abort();
-   }
-   return st;
- }
- 
--#if LWIP_TCPIP_CORE_LOCKING
- static pthread_t lwip_core_lock_holder_thread_id;
- void sys_lock_tcpip_core(void)
- {
-@@ -221,7 +213,6 @@ void sys_unlock_tcpip_core(void)
-   lwip_core_lock_holder_thread_id = 0;
-   sys_mutex_unlock(&lock_tcpip_core);
- }
--#endif /* LWIP_TCPIP_CORE_LOCKING */
- 
- static pthread_t lwip_tcpip_thread_id;
- void sys_mark_tcpip_thread(void)
-@@ -233,15 +224,12 @@ void sys_check_core_locking(void)
- {
-   /* Embedded systems should check we are NOT in an interrupt context here */
- 
-+    /*
-   if (lwip_tcpip_thread_id != 0) {
-     pthread_t current_thread_id = pthread_self();
--
--#if LWIP_TCPIP_CORE_LOCKING
-     LWIP_ASSERT("Function called without core lock", current_thread_id == lwip_core_lock_holder_thread_id);
--#else /* LWIP_TCPIP_CORE_LOCKING */
--    LWIP_ASSERT("Function called from wrong thread", current_thread_id == lwip_tcpip_thread_id);
--#endif /* LWIP_TCPIP_CORE_LOCKING */
-   }
-+  */
- }
- 
- /*-----------------------------------------------------------------------------------*/
-@@ -279,6 +267,10 @@ sys_mbox_free(struct sys_mbox **mb)
-     sys_sem_free_internal(mbox->not_full);
-     sys_sem_free_internal(mbox->mutex);
-     mbox->not_empty = mbox->not_full = mbox->mutex = NULL;
-+    /*
-+      fprintf(stderr, "freeing mbox\n");
-+      fflush(stdout); fflush(stderr);
-+    */
-     /*  LWIP_DEBUGF("sys_mbox_free: mbox 0x%lx\n", mbox); */
-     free(mbox);
-   }
-@@ -293,9 +285,10 @@ sys_mbox_trypost(struct sys_mbox **mb, void *msg)
-   mbox = *mb;
- 
-   sys_arch_sem_wait(&mbox->mutex, 0);
--
-+/*
-   LWIP_DEBUGF(SYS_DEBUG, ("sys_mbox_trypost: mbox %p msg %p\n",
-                           (void *)mbox, (void *)msg));
-+                          */
- 
-   if ((mbox->last + 1) >= (mbox->first + SYS_MBOX_SIZE)) {
-     sys_sem_signal(&mbox->mutex);
-@@ -314,6 +307,8 @@ sys_mbox_trypost(struct sys_mbox **mb, void *msg)
- 
-   if (first) {
-     sys_sem_signal(&mbox->not_empty);
-+      /*printf("Mbox was empty, notifying lwip\n");
-+      fflush(stdout);*/
-   }
- 
-   sys_sem_signal(&mbox->mutex);
-@@ -337,7 +332,9 @@ sys_mbox_post(struct sys_mbox **mb, void *msg)
- 
-   sys_arch_sem_wait(&mbox->mutex, 0);
- 
-+  /*
-   LWIP_DEBUGF(SYS_DEBUG, ("sys_mbox_post: mbox %p msg %p\n", (void *)mbox, (void *)msg));
-+*/
- 
-   while ((mbox->last + 1) >= (mbox->first + SYS_MBOX_SIZE)) {
-     mbox->wait_send++;
-@@ -359,6 +356,8 @@ sys_mbox_post(struct sys_mbox **mb, void *msg)
- 
-   if (first) {
-     sys_sem_signal(&mbox->not_empty);
-+      /*printf("Mbox was empty, notifying lwip\n");
-+      fflush(stdout);*/
-   }
- 
-   sys_sem_signal(&mbox->mutex);
-@@ -379,17 +378,23 @@ sys_arch_mbox_tryfetch(struct sys_mbox **mb, void **msg)
-   }
- 
-   if (msg != NULL) {
-+      /*
-     LWIP_DEBUGF(SYS_DEBUG, ("sys_mbox_tryfetch: mbox %p msg %p\n", (void *)mbox, *msg));
-+    */
-     *msg = mbox->msgs[mbox->first % SYS_MBOX_SIZE];
-   }
-   else{
-+      /*
-     LWIP_DEBUGF(SYS_DEBUG, ("sys_mbox_tryfetch: mbox %p, null msg\n", (void *)mbox));
-+    */
-   }
- 
-   mbox->first++;
- 
-   if (mbox->wait_send) {
-     sys_sem_signal(&mbox->not_full);
-+    /*printf("Mbox was full, notifying netif/app\n");
-+      fflush(stdout);*/
-   }
- 
-   sys_sem_signal(&mbox->mutex);
-@@ -428,17 +433,23 @@ sys_arch_mbox_fetch(struct sys_mbox **mb, void **msg, u32_t timeout)
-   }
- 
-   if (msg != NULL) {
-+      /*
-     LWIP_DEBUGF(SYS_DEBUG, ("sys_mbox_fetch: mbox %p msg %p\n", (void *)mbox, *msg));
-+    */
-     *msg = mbox->msgs[mbox->first % SYS_MBOX_SIZE];
-   }
-   else{
-+      /*
-     LWIP_DEBUGF(SYS_DEBUG, ("sys_mbox_fetch: mbox %p, null msg\n", (void *)mbox));
-+    */
-   }
- 
-   mbox->first++;
- 
-   if (mbox->wait_send) {
-     sys_sem_signal(&mbox->not_full);
-+    /*printf("Mbox was full, notifying netif/app\n");
-+      fflush(stdout);*/
-   }
- 
-   sys_sem_signal(&mbox->mutex);
-@@ -456,12 +467,15 @@ sys_sem_new_internal(u8_t count)
-   sem = (struct sys_sem *)malloc(sizeof(struct sys_sem));
-   if (sem != NULL) {
-     sem->c = count;
-+      sem->sleeper = 0;
-+      atomic_flag_clear_explicit(&(sem->cond), memory_order_release);
-+      atomic_flag_test_and_set_explicit(&(sem->cond), memory_order_acquire);
-+      atomic_flag_clear_explicit(&(sem->mutex), memory_order_release);
-+      /*
-     pthread_condattr_init(&(sem->condattr));
--#if !(defined(LWIP_UNIX_MACH) || (defined(LWIP_UNIX_ANDROID) && __ANDROID_API__ < 21))
-     pthread_condattr_setclock(&(sem->condattr), CLOCK_MONOTONIC);
--#endif
-     pthread_cond_init(&(sem->cond), &(sem->condattr));
--    pthread_mutex_init(&(sem->mutex), NULL);
-+    */
-   }
-   return sem;
- }
-@@ -477,29 +491,107 @@ sys_sem_new(struct sys_sem **sem, u8_t count)
-   return ERR_OK;
- }
- 
-+/*
- static u32_t
- cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, u32_t timeout)
--{
--  struct timespec rtime1, rtime2, ts;
--  int ret;
--
-+ */
-+static u32_t
-+cond_wait(atomic_flag * cond, atomic_flag * mutex, u32_t timeout)
-+{
-+    const unsigned long rough_per_seond = 1e3; /* timeout is in ms (1e-3) */
-+    const unsigned long rough_per_ms = rough_per_seond / 1000L;
-+    
-+    unsigned long tv_sec;
-+    unsigned long tv_msec;
-+    
-+    unsigned long sleep_counter;
-+    unsigned long slept_sec;
-+    unsigned long slept_msec;
-+    
-+    long secs;
-+    
- #ifdef __GNU__
-   #define pthread_cond_wait pthread_hurd_cond_wait_np
-   #define pthread_cond_timedwait pthread_hurd_cond_timedwait_np
- #endif
--
-+    
-+/*
-+ sleep on cond() till notify;
-+ on wakeup, try to lock mutex;
-+ check condition via if;
-+ TRUE: do stuff; unlock mutex;
-+ FALSE: unlock mutex; sleep on cond() again
-+ */
-   if (timeout == 0) {
--    pthread_cond_wait(cond, mutex);
--    return 0;
-+      /* pthread_cond_wait(cond, mutex); */
-+      
-+      /* release lock */
-+      atomic_flag_clear_explicit(mutex, memory_order_release);
-+      /* until notify via "clear" */
-+      while (atomic_flag_test_and_set_explicit(cond, memory_order_acquire)) cpu_relax();
-+      /* until lock acquired */
-+      while (atomic_flag_test_and_set_explicit(mutex, memory_order_acquire)) cpu_relax();
-+    
-+      return 0;
-   }
- 
--  /* Get a timestamp and add the timeout value. */
-+    /* cf. SPINLOCK_TIMEOUT in Linux kernel! (basically we will just decrement a counter variable ... could sleep for longer or indefinite waits instead; */
-+    
-+    tv_sec = timeout / 1000L;
-+    tv_msec = timeout % 1000L;
-+    
-+    sleep_counter = 0;
-+    slept_sec = 0;
-+    slept_msec = 0;
-+    
-+    /* release lock */
-+    atomic_flag_clear_explicit(mutex, memory_order_release);
-+    
-+    /*
-+    printf("Going to spin with timeout (sec: %lu, msec: %lu)\n", tv_sec, tv_msec);
-+    fflush(stdout);
-+     */
-+    while (1) {
-+        
-+        /* pthread_cond_wait(cond, mutex); */
-+        
-+        /* check for notify */
-+        if (!atomic_flag_test_and_set_explicit(cond, memory_order_acquire)) {
-+            /* until lock acquired */
-+            while (atomic_flag_test_and_set_explicit(mutex, memory_order_acquire)) cpu_relax();
-+            /*(u32_t)(ts.tv_sec * 1000L + ts.tv_nsec / 1000000L);*/
-+            secs = (tv_sec - slept_sec);
-+            return (u32_t)((secs > 0 ? secs * 1000L : 0) + (tv_msec - slept_msec));
-+        }
-+        
-+        sleep_counter ++;
-+        /*
-+        slept_msec += sleep_counter % rough_per_ms;
-+        sleep_counter /= rough_per_ms;
-+        slept_sec += slept_msec % 1000L;
-+        slept_msec /= 1000L;
-+        if (__glibc_unlikely(slept_sec >= tv_sec && slept_msec >= tv_msec))
-+            return SYS_ARCH_TIMEOUT;
-+        */
-+
-+        if (sleep_counter >= rough_per_ms) {
-+            sleep_counter -= rough_per_ms;
-+            slept_msec += 1;
-+            if (slept_msec >= 1000L) {
-+                slept_sec += 1;
-+                slept_msec -= 1000L;
-+            }
-+            if (slept_sec >= tv_sec && slept_msec >= tv_msec) {
-+                return SYS_ARCH_TIMEOUT;
-+            }
-+        }
-+        
-+        /*printf("slept sec: %lu, slept msec: %lu)\n", slept_sec, slept_msec);*/
-+    }
-+    
-+    /*
-+   Get a timestamp and add the timeout value.
-   get_monotonic_time(&rtime1);
--#if defined(LWIP_UNIX_MACH) || (defined(LWIP_UNIX_ANDROID) && __ANDROID_API__ < 21)
--  ts.tv_sec = timeout / 1000L;
--  ts.tv_nsec = (timeout % 1000L) * 1000000L;
--  ret = pthread_cond_timedwait_relative_np(cond, mutex, &ts);
--#else
-   ts.tv_sec = rtime1.tv_sec + timeout / 1000L;
-   ts.tv_nsec = rtime1.tv_nsec + (timeout % 1000L) * 1000000L;
-   if (ts.tv_nsec >= 1000000000L) {
-@@ -507,13 +599,21 @@ cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, u32_t timeout)
-     ts.tv_nsec -= 1000000000L;
-   }
- 
-+   is indeed shown
-+
-+  printf("Going to call pthread_cond_timedwait(tv_sec=%ld, tv_nsec=%ld)\n", ts.tv_sec, ts.tv_nsec);
-+  fflush(stdout);
-+
-   ret = pthread_cond_timedwait(cond, mutex, &ts);
--#endif
-+
-+  printf("pthread_cond_timedwait() returned");
-+  fflush(stdout);
-+
-   if (ret == ETIMEDOUT) {
-     return SYS_ARCH_TIMEOUT;
-   }
- 
--  /* Calculate for how long we waited for the cond. */
-+   Calculate for how long we waited for the cond.
-   get_monotonic_time(&rtime2);
-   ts.tv_sec = rtime2.tv_sec - rtime1.tv_sec;
-   ts.tv_nsec = rtime2.tv_nsec - rtime1.tv_nsec;
-@@ -522,6 +622,7 @@ cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, u32_t timeout)
-     ts.tv_nsec += 1000000000L;
-   }
-   return (u32_t)(ts.tv_sec * 1000L + ts.tv_nsec / 1000000L);
-+    */
- }
- 
- u32_t
-@@ -532,23 +633,34 @@ sys_arch_sem_wait(struct sys_sem **s, u32_t timeout)
-   LWIP_ASSERT("invalid sem", (s != NULL) && (*s != NULL));
-   sem = *s;
- 
--  pthread_mutex_lock(&(sem->mutex));
-+  /* pthread_mutex_lock(&(sem->mutex)); */
-+  while(atomic_flag_test_and_set_explicit(&(sem->mutex), memory_order_acquire)) cpu_relax();
-   while (sem->c <= 0) {
-     if (timeout > 0) {
-+      sem->sleeper++;
-       time_needed = cond_wait(&(sem->cond), &(sem->mutex), timeout);
-+      sem->sleeper--;
-+      /* always simulate broadcast */
-+      if(sem->sleeper>0) atomic_flag_clear_explicit(&(sem->cond), memory_order_release);
- 
--      if (time_needed == SYS_ARCH_TIMEOUT) {
--        pthread_mutex_unlock(&(sem->mutex));
-+      if (time_needed == SYS_ARCH_TIMEOUT) {\
-+        /* pthread_mutex_unlock(&(sem->mutex)); */
-+        atomic_flag_clear_explicit(&(sem->mutex), memory_order_release);
-         return SYS_ARCH_TIMEOUT;
-       }
-       /*      pthread_mutex_unlock(&(sem->mutex));
-               return time_needed; */
-     } else {
-+      sem->sleeper++;
-       cond_wait(&(sem->cond), &(sem->mutex), 0);
-+      sem->sleeper--;
-+      /* always simulate broadcast */
-+      if(sem->sleeper>0) atomic_flag_clear_explicit(&(sem->cond), memory_order_release);
-     }
-   }
-   sem->c--;
--  pthread_mutex_unlock(&(sem->mutex));
-+  /* pthread_mutex_unlock(&(sem->mutex)); */
-+  atomic_flag_clear_explicit(&(sem->mutex), memory_order_release);
-   return (u32_t)time_needed;
- }
- 
-@@ -559,23 +671,41 @@ sys_sem_signal(struct sys_sem **s)
-   LWIP_ASSERT("invalid sem", (s != NULL) && (*s != NULL));
-   sem = *s;
- 
--  pthread_mutex_lock(&(sem->mutex));
-+  /* pthread_mutex_lock(&(sem->mutex)); */
-+  while(atomic_flag_test_and_set_explicit(&(sem->mutex), memory_order_acquire)) cpu_relax();
-   sem->c++;
- 
-   if (sem->c > 1) {
-     sem->c = 1;
-   }
- 
-+/*
-   pthread_cond_broadcast(&(sem->cond));
-   pthread_mutex_unlock(&(sem->mutex));
-+ */
-+  if (sem->sleeper > 0) atomic_flag_clear_explicit(&(sem->cond), memory_order_release);
-+  atomic_flag_clear_explicit(&(sem->mutex), memory_order_release);
- }
- 
- static void
- sys_sem_free_internal(struct sys_sem *sem)
- {
-+  /* "Attempting to destroy a condition variable upon which other threads are currently blocked results in undefined behavior." ~ man */
-+  if (sem->sleeper > 0) {
-+    fprintf(stderr, "Destroying Cond.Variable on which %u are still waiting!\n", sem->sleeper);
-+    fflush(stdout); fflush(stderr);
-+  }
-+  atomic_flag_clear_explicit(&(sem->cond), memory_order_release);
-+  atomic_flag_clear_explicit(&(sem->mutex), memory_order_release);
-+/*
-   pthread_cond_destroy(&(sem->cond));
-   pthread_condattr_destroy(&(sem->condattr));
-   pthread_mutex_destroy(&(sem->mutex));
-+ */
-+ /*
-+    fprintf(stderr, "freeing sem\n");
-+    fflush(stdout); fflush(stderr);
-+ */
-   free(sem);
- }
- 
-@@ -600,7 +730,9 @@ sys_mutex_new(struct sys_mutex **mutex)
- 
-   mtx = (struct sys_mutex *)malloc(sizeof(struct sys_mutex));
-   if (mtx != NULL) {
--    pthread_mutex_init(&(mtx->mutex), NULL);
-+    /*pthread_mutex_init(&(mtx->mutex), NULL);*/
-+    /*TODO: mtx->spinlock = ATOMIC_FLAG_INIT;*/
-+    atomic_flag_clear_explicit(&(mtx->spinlock), memory_order_release);
-     *mutex = mtx;
-     return ERR_OK;
-   }
-@@ -614,7 +746,8 @@ sys_mutex_new(struct sys_mutex **mutex)
- void
- sys_mutex_lock(struct sys_mutex **mutex)
- {
--  pthread_mutex_lock(&((*mutex)->mutex));
-+  /*pthread_mutex_lock(&((*mutex)->mutex));*/
-+    while(atomic_flag_test_and_set_explicit(&((*mutex)->spinlock), memory_order_acquire)) cpu_relax();
- }
- 
- /** Unlock a mutex
-@@ -622,7 +755,8 @@ sys_mutex_lock(struct sys_mutex **mutex)
- void
- sys_mutex_unlock(struct sys_mutex **mutex)
- {
--  pthread_mutex_unlock(&((*mutex)->mutex));
-+  /*pthread_mutex_unlock(&((*mutex)->mutex));*/
-+    atomic_flag_clear_explicit(&((*mutex)->spinlock), memory_order_release);
- }
- 
- /** Delete a mutex
-@@ -630,12 +764,14 @@ sys_mutex_unlock(struct sys_mutex **mutex)
- void
- sys_mutex_free(struct sys_mutex **mutex)
- {
--  pthread_mutex_destroy(&((*mutex)->mutex));
-+  /*
-+    fprintf(stderr, "freeing mutex\n");
-+    fflush(stdout); fflush(stderr);
-+  */
-+  /*pthread_mutex_destroy(&((*mutex)->mutex));*/
-   free(*mutex);
- }
- 
--#endif /* !NO_SYS */
--
- /*-----------------------------------------------------------------------------------*/
- /* Time */
- u32_t
-@@ -666,7 +802,6 @@ sys_init(void)
- 
- /*-----------------------------------------------------------------------------------*/
- /* Critical section */
--#if SYS_LIGHTWEIGHT_PROT
- /** sys_prot_t sys_arch_protect(void)
- 
- This optional function does a "fast" critical region protection and returns
-@@ -722,7 +857,6 @@ sys_arch_unprotect(sys_prot_t pval)
-         }
-     }
- }
--#endif /* SYS_LIGHTWEIGHT_PROT */
- 
- /* get keyboard state to terminate the debug app by using select */
- int
-diff --git a/src/api/api_msg.c b/src/api/api_msg.c
-index 3953102..0b82af1 100644
---- a/src/api/api_msg.c
-+++ b/src/api/api_msg.c
-@@ -1372,7 +1372,9 @@ lwip_netconn_do_connect(void *m)
-         /* Prevent connect while doing any other action. */
-         if (msg->conn->state == NETCONN_CONNECT) {
-           err = ERR_ALREADY;
--        } else if (msg->conn->state != NETCONN_NONE) {
-+        /* adapted patch from GenodeOS project against assert on non-blocking connect */
-+        } else if ((msg->conn->state != NETCONN_NONE) ||
-+                   ((msg->conn->pcb.tcp->state == ESTABLISHED) && netconn_is_nonblocking(msg->conn))) {
-           err = ERR_ISCONN;
-         } else {
-           setup_tcp(msg->conn);
 diff --git a/src/api/netdb.c b/src/api/netdb.c
-index 8771425..8d4a70f 100644
+index 8771425..fbe42f1 100644
 --- a/src/api/netdb.c
 +++ b/src/api/netdb.c
-@@ -306,7 +306,8 @@ lwip_getaddrinfo(const char *nodename, const char *servname,
-     /* service name specified: convert to port number
-      * @todo?: currently, only ASCII integers (port numbers) are supported (AI_NUMERICSERV)! */
-     port_nr = atoi(servname);
--    if ((port_nr <= 0) || (port_nr > 0xffff)) {
-+    /* Change: allow "0" */
-+    if ((port_nr < 0) || (port_nr > 0xffff)) {
-       return EAI_SERVICE;
-     }
-   }
-@@ -374,7 +375,7 @@ lwip_getaddrinfo(const char *nodename, const char *servname,
+@@ -374,7 +374,7 @@ lwip_getaddrinfo(const char *nodename, const char *servname,
      /* set up sockaddr */
      inet6_addr_from_ip6addr(&sa6->sin6_addr, ip_2_ip6(&addr));
      sa6->sin6_family = AF_INET6;
@@ -592,7 +11,7 @@ index 8771425..8d4a70f 100644
      sa6->sin6_port = lwip_htons((u16_t)port_nr);
      sa6->sin6_scope_id = ip6_addr_zone(ip_2_ip6(&addr));
      ai->ai_family = AF_INET6;
-@@ -385,7 +386,7 @@ lwip_getaddrinfo(const char *nodename, const char *servname,
+@@ -385,7 +385,7 @@ lwip_getaddrinfo(const char *nodename, const char *servname,
      /* set up sockaddr */
      inet_addr_from_ip4addr(&sa4->sin_addr, ip_2_ip4(&addr));
      sa4->sin_family = AF_INET;
@@ -602,7 +21,7 @@ index 8771425..8d4a70f 100644
      ai->ai_family = AF_INET;
  #endif /* LWIP_IPV4 */
 diff --git a/src/api/sockets.c b/src/api/sockets.c
-index 09523c5..7623e6e 100644
+index 09523c5..4e8bf0e 100644
 --- a/src/api/sockets.c
 +++ b/src/api/sockets.c
 @@ -87,7 +87,6 @@
@@ -621,19 +40,7 @@ index 09523c5..7623e6e 100644
        (sin6)->sin6_family = AF_INET6; \
        (sin6)->sin6_port = lwip_htons((port)); \
        (sin6)->sin6_flowinfo = 0; \
-@@ -156,7 +154,11 @@ static void sockaddr_to_ipaddr_port(const struct sockaddr *sockaddr, ip_addr_t *
-                                                     IS_SOCK_ADDR_TYPE_VALID(name))
- #define SOCK_ADDR_TYPE_MATCH_OR_UNSPEC(name, sock) (((name)->sa_family == AF_UNSPEC) || \
-                                                     SOCK_ADDR_TYPE_MATCH(name, sock))
-+
-+/*
- #define IS_SOCK_ADDR_ALIGNED(name)      ((((mem_ptr_t)(name)) % 4) == 0)
-+*/
-+#define IS_SOCK_ADDR_ALIGNED(name)      (1)
- 
- 
- #define LWIP_SOCKOPT_CHECK_OPTLEN(sock, optlen, opttype) do { if ((optlen) < sizeof(opttype)) { done_socket(sock); return EINVAL; }}while(0)
-@@ -696,9 +698,22 @@ lwip_accept(int s, struct sockaddr *addr, socklen_t *addrlen)
+@@ -696,9 +694,22 @@ lwip_accept(int s, struct sockaddr *addr, socklen_t *addrlen)
      }
  
      IPADDR_PORT_TO_SOCKADDR(&tempaddr, &naddr, port);
@@ -657,7 +64,7 @@ index 09523c5..7623e6e 100644
      MEMCPY(addr, &tempaddr, *addrlen);
  
      LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_accept(%d) returning new sock=%d addr=", s, newsock));
-@@ -1026,6 +1041,9 @@ lwip_sock_make_addr(struct netconn *conn, ip_addr_t *fromaddr, u16_t port,
+@@ -1026,6 +1037,9 @@ lwip_sock_make_addr(struct netconn *conn, ip_addr_t *fromaddr, u16_t port,
    int truncated = 0;
    union sockaddr_aligned saddr;
  
@@ -667,7 +74,7 @@ index 09523c5..7623e6e 100644
    LWIP_UNUSED_ARG(conn);
  
    LWIP_ASSERT("fromaddr != NULL", fromaddr != NULL);
-@@ -1041,11 +1059,33 @@ lwip_sock_make_addr(struct netconn *conn, ip_addr_t *fromaddr, u16_t port,
+@@ -1041,11 +1055,33 @@ lwip_sock_make_addr(struct netconn *conn, ip_addr_t *fromaddr, u16_t port,
  #endif /* LWIP_IPV4 && LWIP_IPV6 */
  
    IPADDR_PORT_TO_SOCKADDR(&saddr, fromaddr, port);
@@ -701,7 +108,7 @@ index 09523c5..7623e6e 100644
    MEMCPY(from, &saddr, *fromlen);
    return truncated;
  }
-@@ -1091,7 +1131,7 @@ lwip_recvfrom_udp_raw(struct lwip_sock *sock, int flags, struct msghdr *msg, u16
+@@ -1091,7 +1127,7 @@ lwip_recvfrom_udp_raw(struct lwip_sock *sock, int flags, struct msghdr *msg, u16
    u8_t apiflags;
    err_t err;
    u16_t buflen, copylen, copied;
@@ -710,7 +117,7 @@ index 09523c5..7623e6e 100644
  
    LWIP_UNUSED_ARG(dbg_s);
    LWIP_ERROR("lwip_recvfrom_udp_raw: invalid arguments", (msg->msg_iov != NULL) || (msg->msg_iovlen <= 0), return ERR_ARG;);
-@@ -1281,7 +1321,7 @@ ssize_t
+@@ -1281,7 +1317,7 @@ ssize_t
  lwip_recvmsg(int s, struct msghdr *message, int flags)
  {
    struct lwip_sock *sock;
@@ -719,7 +126,7 @@ index 09523c5..7623e6e 100644
    ssize_t buflen;
  
    LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvmsg(%d, message=%p, flags=0x%x)\n", s, (void *)message, flags));
-@@ -1468,7 +1508,7 @@ lwip_sendmsg(int s, const struct msghdr *msg, int flags)
+@@ -1468,7 +1504,7 @@ lwip_sendmsg(int s, const struct msghdr *msg, int flags)
  #if LWIP_UDP || LWIP_RAW
    {
      struct netbuf chain_buf;
@@ -728,7 +135,7 @@ index 09523c5..7623e6e 100644
      ssize_t size = 0;
  
      LWIP_UNUSED_ARG(flags);
-@@ -1591,6 +1631,11 @@ lwip_sendto(int s, const void *data, size_t size, int flags,
+@@ -1591,6 +1627,11 @@ lwip_sendto(int s, const void *data, size_t size, int flags,
    u16_t remote_port;
    struct netbuf buf;
  
@@ -740,7 +147,7 @@ index 09523c5..7623e6e 100644
    sock = get_socket(s);
    if (!sock) {
      return -1;
-@@ -1615,6 +1660,15 @@ lwip_sendto(int s, const void *data, size_t size, int flags,
+@@ -1615,6 +1656,15 @@ lwip_sendto(int s, const void *data, size_t size, int flags,
      return -1;
    }
    short_size = (u16_t)size;
@@ -756,7 +163,7 @@ index 09523c5..7623e6e 100644
    LWIP_ERROR("lwip_sendto: invalid address", (((to == NULL) && (tolen == 0)) ||
               (IS_SOCK_ADDR_LEN_VALID(tolen) &&
                ((to != NULL) && (IS_SOCK_ADDR_TYPE_VALID(to) && IS_SOCK_ADDR_ALIGNED(to))))),
-@@ -2327,6 +2381,9 @@ lwip_poll(struct pollfd *fds, nfds_t nfds, int timeout)
+@@ -2327,6 +2377,9 @@ lwip_poll(struct pollfd *fds, nfds_t nfds, int timeout)
  
    LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_poll(%p, %d, %d)\n",
                    (void*)fds, (int)nfds, timeout));
@@ -766,7 +173,7 @@ index 09523c5..7623e6e 100644
    LWIP_ERROR("lwip_poll: invalid fds", ((fds != NULL && nfds > 0) || (fds == NULL && nfds == 0)),
               set_errno(EINVAL); return -1;);
  
-@@ -2346,6 +2403,7 @@ lwip_poll(struct pollfd *fds, nfds_t nfds, int timeout)
+@@ -2346,6 +2399,7 @@ lwip_poll(struct pollfd *fds, nfds_t nfds, int timeout)
      API_SELECT_CB_VAR_DECLARE(select_cb);
  
      if (timeout == 0) {
@@ -774,7 +181,7 @@ index 09523c5..7623e6e 100644
        LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_poll: no timeout, returning 0\n"));
        goto return_success;
      }
-@@ -2705,6 +2763,8 @@ lwip_getaddrname(int s, struct sockaddr *name, socklen_t *namelen, u8_t local)
+@@ -2705,6 +2759,8 @@ lwip_getaddrname(int s, struct sockaddr *name, socklen_t *namelen, u8_t local)
    u16_t port;
    err_t err;
  
@@ -783,7 +190,7 @@ index 09523c5..7623e6e 100644
    sock = get_socket(s);
    if (!sock) {
      return -1;
-@@ -2733,9 +2793,28 @@ lwip_getaddrname(int s, struct sockaddr *name, socklen_t *namelen, u8_t local)
+@@ -2733,9 +2789,28 @@ lwip_getaddrname(int s, struct sockaddr *name, socklen_t *namelen, u8_t local)
    ip_addr_debug_print_val(SOCKETS_DEBUG, naddr);
    LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%"U16_F")\n", port));
  
@@ -812,7 +219,7 @@ index 09523c5..7623e6e 100644
    MEMCPY(name, &saddr, *namelen);
  
    sock_set_errno(sock, 0);
-@@ -3425,8 +3504,8 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
+@@ -3425,8 +3500,8 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
            LWIP_SOCKOPT_CHECK_OPTLEN_CONN(sock, optlen, struct ifreq);
  
            iface = (const struct ifreq *)optval;
@@ -823,7 +230,7 @@ index 09523c5..7623e6e 100644
              if (n == NULL) {
                done_socket(sock);
                return ENODEV;
-@@ -3742,12 +3821,24 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
+@@ -3742,12 +3817,24 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
  int
  lwip_ioctl(int s, long cmd, void *argp)
  {
@@ -849,7 +256,7 @@ index 09523c5..7623e6e 100644
    if (!sock) {
      return -1;
    }
-@@ -3755,6 +3846,10 @@ lwip_ioctl(int s, long cmd, void *argp)
+@@ -3755,6 +3842,10 @@ lwip_ioctl(int s, long cmd, void *argp)
    switch (cmd) {
  #if LWIP_SO_RCVBUF || LWIP_FIONREAD_LINUXMODE
      case FIONREAD:
@@ -860,7 +267,7 @@ index 09523c5..7623e6e 100644
        if (!argp) {
          sock_set_errno(sock, EINVAL);
          done_socket(sock);
-@@ -3765,17 +3860,33 @@ lwip_ioctl(int s, long cmd, void *argp)
+@@ -3765,17 +3856,33 @@ lwip_ioctl(int s, long cmd, void *argp)
          struct netbuf *nb;
          if (sock->lastdata.netbuf) {
            nb = sock->lastdata.netbuf;

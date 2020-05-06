@@ -1,0 +1,15 @@
+diff --git a/src/api/api_msg.c b/src/api/api_msg.c
+index 39531024..9013b11c 100644
+--- a/src/api/api_msg.c
++++ b/src/api/api_msg.c
+@@ -1372,7 +1372,9 @@ lwip_netconn_do_connect(void *m)
+         /* Prevent connect while doing any other action. */
+         if (msg->conn->state == NETCONN_CONNECT) {
+           err = ERR_ALREADY;
+-        } else if (msg->conn->state != NETCONN_NONE) {
++        /* adapted patch from GenodeOS project against assert on non-blocking connect */
++        } else if ((msg->conn->state != NETCONN_NONE) ||
++                   ((msg->conn->pcb.tcp->state == ESTABLISHED) && netconn_is_nonblocking(msg->conn))) {
+           err = ERR_ISCONN;
+         } else {
+           setup_tcp(msg->conn);

@@ -1,0 +1,14 @@
+diff --git a/src/api/netdb.c b/src/api/netdb.c
+index 87714259..8d4a70f5 100644
+--- a/src/api/netdb.c
++++ b/src/api/netdb.c
+@@ -306,7 +306,8 @@ lwip_getaddrinfo(const char *nodename, const char *servname,
+     /* service name specified: convert to port number
+      * @todo?: currently, only ASCII integers (port numbers) are supported (AI_NUMERICSERV)! */
+     port_nr = atoi(servname);
+-    if ((port_nr <= 0) || (port_nr > 0xffff)) {
++    /* Change: allow "0" */
++    if ((port_nr < 0) || (port_nr > 0xffff)) {
+       return EAI_SERVICE;
+     }
+   }
