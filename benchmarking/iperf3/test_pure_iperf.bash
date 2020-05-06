@@ -1,4 +1,12 @@
 #!/bin/bash
+if [ "$#" -ne 1 ]; then
+    echo "Illegal number of parameters"
+    echo "Pass the target IP as sole argument"
+    exit 1
+fi
+
+DST_IP="$1"
+
 GRAPHENE=~/sgx-ra-tls/deps/graphene/
 BIN=~/benchmarking/iperf-3.1.3/build/bin/iperf3
 NAME=`basename "${BIN}"_pure`
@@ -26,7 +34,7 @@ echo "*******************************************************************"
 
 ulimit -n 512
 #${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} "$@"
-sudo nice -n -20 ${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} --reverse --client "$1" --len 8K --bandwidth 1000M
+sudo nice -n -20 ${GRAPHENE}/Runtime/pal_loader "SGX" ${NAME} --reverse --client "${DST_IP}" --len 8K --bandwidth 1000M
 
 echo "*******************************************************************"
 
