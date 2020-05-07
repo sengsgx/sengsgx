@@ -4,8 +4,9 @@ The following is a list of unordered todos.
 
 ### General
 * make SENG Server IP and Port easier configurable at SENG Runtime and SENG SDK
-* consider porting to new versions of Graphene-SGX and sgx-ra-tls
+* consider porting to new versions of Graphene-SGX and sgx-ra-tls (with more stable exitless O/ECALL support)
 * containers without "host" networking mode and with least privilege
+* instead of internal server/gateway, the client enclaves currently connect to IAS
 
 
 ### SENG client components

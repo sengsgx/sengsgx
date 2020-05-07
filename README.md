@@ -235,11 +235,12 @@ The instructions for preparing and running the microbenchmarks are provided in t
 
 ## <a name="limitations" /> Limitations
 The current protoype has a number of limitations, including:
-* instable Graphene-SGX exitless O/ECALLs
 * SENG Server IP and Port are hardcoded in the SENG Runtime and SENG SDK
 * IAS IP currently hardcoded in trusted hosts file (only for SENG Runtime initialization code)
+* instead of internal server/gateway, the client enclaves currently connect to IAS
 * the SENG Server can have problems handling multiple Enclaves, because of its current reliance on SO_REUSEPORT
 * SQLite3 database support, but no thorough database integration yet
+* instable Graphene-SGX exitless O/ECALLs
 * loopback destination IP (127.0.0.1) through(!) the tunnel is not yet working, because lwIP interprets and refuses such traffic internally
 * missing shutdown API for SENG SDK
 * SENG SDK uses/has no fs-shield yet
