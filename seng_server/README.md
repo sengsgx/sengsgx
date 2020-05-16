@@ -114,7 +114,7 @@ SENG SDK Demo App and SENG SDK NGINX port as the SENG Server address. If you
 want to use a different SENG Server address, you have to manually adapt them at the
 moment:
 * SENG Runtime: [DT_RaSSLTunnelNetif_OpenSSL.cpp:58/59](../seng_runtime/lwip_based_client_lib/dtls_tunnel_netif/src/DT_RaSSLTunnelNetif_OpenSSL.cpp#L58)
-* SENG SDK Demo App: [app_enclave.cpp:28](../seng_sdk/enclave/app/src/app_enclave.cpp#L30)
+* SENG SDK Demo App: [app_enclave.cpp:28](../seng_sdk/enclave/app/src/app_enclave.cpp#L28)
 * SENG SDK NGINX port: [nginx-1.10.3/src/os/seng/trusted/ngx_seng_init.c:42](../seng_sdk/ported_external_apps/WIP_nginx_seng.patch#L7208)
 
 
