@@ -57,6 +57,21 @@ with the SENG Server.
 1. pull submodules:
     `git submodule update --init --recursive`
 
+    Note: If you downloaded the SENG archive (no git), clone the required submodules manually:
+    ```
+    # lwIP
+    pushd seng_runtime/lwip_based_client_lib/externals/lwip/
+    git clone https://git.savannah.nongnu.org/git/lwip.git .
+    git checkout 2ff0db9a9b047d1c94ddbeea010561d1b9032101
+    popd
+
+    # sgx-ra-tls
+    pushd sgx-ra-tls/
+    git clone https://github.com/cloud-security-research/sgx-ra-tls .
+    git checkout 10de7cc9ff8ffaebc103617d62e47e699f2fb5ff
+    popd
+    ```
+
 2. patch sgx-ra-tls:
     ```
     cd sgx-ra-tls/
