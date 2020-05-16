@@ -187,19 +187,19 @@ Each of the SENG components is built using a separate Docker container based on 
 base container. The build instructions for each component are provided in the README files
 of the respective subdirectory:
 
-* [build the SENG Server](seng_server/index.html#build)
-* [build the SENG Runtime](seng_runtime/index.html#build)
-* [build the SENG SDK](seng_sdk/index.html#build)
+* [build the SENG Server](seng_server/README.md#build)
+* [build the SENG Runtime](seng_runtime/README.md#build)
+* [build the SENG SDK](seng_sdk/README.md#build)
 
 
 
 ## <a name="runseng" /> Running and Benchmarking the SENG Components
 Note that at the moment the SENG Runtime and SENG SDK have the SENG Server address and port hardcoded, and assume it to be `127.0.0.1:12345/udp`.
-Please see the [respective SENG Server section](seng_server/index.html#serverdefault) for adapting it to your needs.
+Please see the [respective SENG Server section](seng_server/README.md#serverdefault) for adapting it to your needs.
 The default setup allows to run all tests on a single SGX-enabled machine.
 However, it is intended to run the SENG Runtime/SDK on the client host, the SENG Server on the gateway host and 3rd party programs on the gateway or an external host if possible.
 Also note that the SENG Server currently can have problems handling more than 1 enclave
-at once (cf. [Limitations](#limitations) and [TODO.md](todo.html)).
+at once (cf. [Limitations](#limitations) and [TODO.md](TODO.md)).
 Restart in case of unexpected problems and refer to the notes in the respective sections.
 
 **CAUTION**: the loopback destination address `127.0.0.1` is currently **NOT** supported *through*(!) the lwIP tunnel as lwIP will interpret and refuse it internally (cf. todos).
@@ -210,9 +210,9 @@ For local tests, use your internal host IP instead.
 The SENG Runtime and SENG SDK both ship with a small Demo Application for testing the setup.
 The instructions for running the SENG components and Demo Apps are provided in the README files of the respective subdirectories:
 
-* [run the SENG Server](seng_server/index.html#run)
-* [run the SENG Runtime and its Demo App](seng_runtime/index.html#run)
-* [run the SENG SDK and its Demo App](seng_sdk/index.html#run)
+* [run the SENG Server](seng_server/README.md#run)
+* [run the SENG Runtime and its Demo App](seng_runtime/README.md#run)
+* [run the SENG SDK and its Demo App](seng_sdk/README.md#run)
 
 
 
@@ -221,14 +221,14 @@ The SENG Runtime and SENG SDK ship with scripts for running and benchmarking a s
 The SENG Runtime supports running iPerf3, cURL, Telnet and NGINX, while the SENG SDK ships with a ported version of NGINX.
 The instructions for building, running and benchmarking the real-world apps with the SENG Runtime and SENG SDK are provided in the README files of the respective subdirectory:
 
-* [run and benchmark the SENG Runtime real-world apps](seng_runtime/index.html#bench)
-* [run and benchmark the SENG SDK port of NGINX](seng_sdk/index.html#bench)
+* [run and benchmark the SENG Runtime real-world apps](seng_runtime/README.md#bench)
+* [run and benchmark the SENG SDK port of NGINX](seng_sdk/README.md#bench)
 
 
 
 ### Running the Setup/Initialization Microbenchmarks
 Two microbenchmarks are provided which measure the initialization time of (i) Graphene-SGX and of (ii) the SENG Runtime.
-The instructions for preparing and running the microbenchmarks are provided in the [README file of the SENG Runtime](seng_runtime/index.html#mbench).
+The instructions for preparing and running the microbenchmarks are provided in the [README file of the SENG Runtime](seng_runtime/README.md#mbench).
 
 
 
@@ -245,4 +245,4 @@ The current protoype has a number of limitations, including:
 * missing shutdown API for SENG SDK
 * SENG SDK uses/has no fs-shield yet
 
-See [TODO.md](todo.html) for a general list of todos, planned features and co.
+See [TODO.md](TODO.md) for a general list of todos, planned features and co.

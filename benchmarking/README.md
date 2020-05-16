@@ -1,8 +1,8 @@
 ## Benchmarking
 
 This directory contains scripts and manifest files for downloading, running and benchmarking a set of real-world applications inside the SENG Runtime.
-Please refer to the detailed instructions in the [SENG Runtime README file](../seng_runtime/index.html#bench).
-For running and benchmarking the SENG SDK port of NGINX, please refer to the corresponding section in the [SENG SDK README](../seng_sdk/index.html#bench).
+Please refer to the detailed instructions in the [SENG Runtime README file](../seng_runtime/README.md#bench).
+For running and benchmarking the SENG SDK port of NGINX, please refer to the corresponding section in the [SENG SDK README](../seng_sdk/README.md#bench).
 
 Apps:
 * `curl/` -- scripts and manifests for running `cURL 7.47.0` inside the SENG Runtime

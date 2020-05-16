@@ -10,7 +10,7 @@ The current implementation of the SENG Server is based on [libuv](https://libuv.
 
 
 ## <a name="build" /> Building the SENG Server
-0. follow the [build preparation steps](../index.html#buildprep)
+0. follow the [build preparation steps](../README.md#buildprep)
 
 1. build the SENG Server container:
     ```
@@ -191,4 +191,4 @@ sudo ./src/seng_ossl_double_tunnel_server -s 127.0.0.1 12345
 ```
 
 Note: cf. [instructions for running NGINX inside the SENG Runtime with enabled Port
-Shadowing](../seng_runtime/index.html#nginxshadow) for the client-side instructions.
+Shadowing](../seng_runtime/README.md#nginxshadow) for the client-side instructions.

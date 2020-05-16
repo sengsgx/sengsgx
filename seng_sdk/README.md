@@ -7,7 +7,7 @@ Switchless E/OCALLs are used to speed up the tunnel operations.
 
 
 ## <a name="build" /> Building the SENG SDK
-0. follow the [build preparation steps](../index.html#buildprep) **and** [client-side build preparation steps](../index.html#clibuildprep)
+0. follow the [build preparation steps](../README.md#buildprep) **and** [client-side build preparation steps](../README.md#clibuildprep)
 
 1. fetch libraries:
     ```
@@ -99,7 +99,7 @@ Prerequisites:
     netcat -4 -l <ip4_dst> 8391
     ```
 
-**CAUTION**: For local tests, do **not** use the loopback address (127.0.0.1) as destination IP of the Demo App (cf. [limitations](../index.html#limitations)), but rather your internal host IP.
+**CAUTION**: For local tests, do **not** use the loopback address (127.0.0.1) as destination IP of the Demo App (cf. [limitations](../README.md#limitations)), but rather your internal host IP.
 
 Run the DemoApp:
 ```
@@ -108,7 +108,7 @@ cd ~/seng_sdk/build/
 ./app/app/src/DemoApp <ip4_dst>
 ```
 
-Note: The SENG SDK does not yet implement a graceful shutdown procedure, therefore you have to terminate the enclave with Ctrl+C and might have to restart the SENG Server to cleanup the tunnel (cf. [limitations](../index.html#limitations)).
+Note: The SENG SDK does not yet implement a graceful shutdown procedure, therefore you have to terminate the enclave with Ctrl+C and might have to restart the SENG Server to cleanup the tunnel (cf. [limitations](../README.md#limitations)).
 
 
 
@@ -144,7 +144,7 @@ Note: NGINX shutdown on ctrl+C is currently not yet working. Either press ctrl+C
 
 
 ### Benchmarking
-The benchmarking script is the same one used for the SENG Runtime and is located in `benchmarking/nginx/bench_with_wrk2.bash` (cf. [SENG Runtime section](../seng_runtime/index.html#benchnginxruntime)).
+The benchmarking script is the same one used for the SENG Runtime and is located in `benchmarking/nginx/bench_with_wrk2.bash` (cf. [SENG Runtime section](../seng_runtime/README.md#benchnginxruntime)).
 The script uses [wrk2](https://github.com/giltene/wrk2) to measure the request latency under step-wise increasing request rates.
 For benchmarking the SENG SDK port of NGINX, we recommend running NGINX, the SENG Server and the benchmarking script on 3 seperate machines.
 

@@ -7,7 +7,7 @@ Network traffic of shielded apps only passes through the protected, attested DTL
 
 
 ## <a name="build" /> Building the SENG Runtime
-0. follow the [build preparation steps](../index.html#buildprep) **and** [client-side build preparation steps](../index.html#clibuildprep)
+0. follow the [build preparation steps](../README.md#buildprep) **and** [client-side build preparation steps](../README.md#clibuildprep)
 
 1. patch lwIP:
     ```
@@ -32,7 +32,7 @@ Network traffic of shielded apps only passes through the protected, attested DTL
     make
     ```
 
-    Note: By default, the SENG runtime is built *without* the experimental support for automatic DNAT rules/port shadowing (cf. [SENG Server](../seng_server/index.html#shadowsrv)).
+    Note: By default, the SENG runtime is built *without* the experimental support for automatic DNAT rules/port shadowing (cf. [SENG Server](../seng_server/README.md#shadowsrv)).
     As a consequence, you have to manually add NAT rules if you want the server sockets of Enclaves to be reachable beyond their Enclave IP, e.g., through the client host or gateway IP.
     If you want to try the *experimental support* for automatic DNAT rule creation instead, additionally define "SENG_AUTO_NAT" and consult the corresponding [NGINX section](#nginxshadow):
     ```
@@ -95,11 +95,11 @@ Prerequisites:
 1. ensure that the SENG Server is running and using IP `127.0.0.1`, port `12345/udp`
 2. use netcat to listen for the connection:
     ```
-    [@host]
+    # [@host]
     netcat -4 -l <ip4_dst> 8391
     ```
 
-**CAUTION**: For local tests, do **not** use the loopback address (127.0.0.1) as destination IP of the Demo App (cf. [limitations](../index.html#limitations)), but rather your internal host IP.
+**CAUTION**: For local tests, do **not** use the loopback address (127.0.0.1) as destination IP of the Demo App (cf. [limitations](../README.md#limitations)), but rather your internal host IP.
 
 Build the Demo App:
 ```
@@ -114,7 +114,7 @@ make
 
 Run the Demo App:
 ```
-[@ seng-runtime]
+# [@ seng-runtime]
 cd ~/client_enclave/lwip_based_client_lib/demo_app/
 ./run_demoapp.bash <ip4_dst>
 ```
@@ -166,7 +166,7 @@ Prerequisites:
     iperf3 --server --bind <host_ip4>
     ```
     
-    **CAUTION**: For local tests, do **not** use the loopback address (127.0.0.1) as iPerf3 server IP (cf. [limitations](../index.html#limitations)), but rather your internal host IP.
+    **CAUTION**: For local tests, do **not** use the loopback address (127.0.0.1) as iPerf3 server IP (cf. [limitations](../README.md#limitations)), but rather your internal host IP.
 
 3. enter the SENG Runtime container:
     ```
@@ -249,7 +249,7 @@ Bench cURL in the different modes (run inside SENG Runtime container):
 
 for testing, e.g., `./benchmark_native_curl.bash www.example.com`
 
-**CAUTION**: For local tests, do **not** use the loopback address (127.0.0.1) as destination IP (cf. [limitations](../index.html#limitations)), but rather your internal host IP.
+**CAUTION**: For local tests, do **not** use the loopback address (127.0.0.1) as destination IP (cf. [limitations](../README.md#limitations)), but rather your internal host IP.
 
 
 
@@ -335,7 +335,7 @@ Connecting from host to ..
 
 In all cases you can query the NGINX demo page via a standard HTTP request:
 ```
-[from netcat]
+# [from netcat]
 > GET / HTTP/1.0\n
 > \n
 ```
@@ -367,14 +367,14 @@ Note: If running the SENG Runtime and SENG Server on separate hosts, you have to
 
 #### <a name="nginxshadow" /> Running NGINX with auto-nat/port shadowing enabled (Experimental!)
 The SENG Runtime also supports running NGINX with SENG's experimental auto-nat/port shadowing feature enabled (cf. [build instructions](#build)).
-The ShadowServer of the SENG Server (cf. [server section](../seng_server/index.html#shadowsrv)) will automatically add `DNAT` rules on the NGINX `listen()` call to make the NGINX enclave reachable under the client host IP (in addition to the Enclave IP).
+The ShadowServer of the SENG Server (cf. [server section](../seng_server/README.md#shadowsrv)) will automatically add `DNAT` rules on the NGINX `listen()` call to make the NGINX enclave reachable under the client host IP (in addition to the Enclave IP).
 The client host IP is the source IP of the DTLS tunnel as observed by the SENG Server.
 All other aspects of running NGINX with the SENG Runtime remain the same as described above.
 
 Preparation:
 1. ensure you built the SENG runtime with `SENG_AUTO_NAT` defined
 2. ensure you built the client socket blocker helper tool
-3. ensure you created the `"SENG_output"` and `"SENG_prerouting"` chains as described in the [SENG Server documentation](../seng_server/index.html#shadowsrv)
+3. ensure you created the `"SENG_output"` and `"SENG_prerouting"` chains as described in the [SENG Server documentation](../seng_server/README.md#shadowsrv)
 
 Running:
 1. ensure that the SENG Server is running with `'-s'` option and using IP `127.0.0.1`, port `12345/udp`
