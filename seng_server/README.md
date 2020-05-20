@@ -73,6 +73,12 @@ The current implementation of the SENG Server is based on [libuv](https://libuv.
 
     Note: For both cases, adapt `"eno1"` to the name of your network interface(s). Also cf. comments in `setup_seng_interface.bash` and `teardown_seng_interface.bash` for the commands.
 
+6. enable IPv4 forwarding:
+    ```
+    # enable until next reboot
+    sudo sysctl -w net.ipv4.ip_forward=1
+    ```
+    Note: permanently enabling it requires adapting `/etc/sysctl.conf`
 
 ## <a name="run" /> Running the SENG Server
 The SENG Server has to be run from inside the SENG Server container. While it requires
