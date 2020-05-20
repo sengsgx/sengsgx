@@ -32,7 +32,7 @@ Note: All build instructions have been tested under **Ubuntu 16.04.6 LTS** and k
 The client-side has already been successfully tested with an older container version on
 Ubuntu 18.04.2 LTS and kernel 4.15-0-47. [Docker](https://docs.docker.com/engine/install/ubuntu/)
 and [Docker Compose](https://docs.docker.com/compose/install/) are required for building
-and using the SENG development containers.
+and using the SENG development containers. We assume that the host user has been added to the `docker` group (`sudo usermod -aG docker $USER`) to run docker and docker-compose without sudo.
 
 The following preparatory steps have to be performed **before building any** of the SENG components.
 
