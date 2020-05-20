@@ -217,13 +217,13 @@ of the respective subdirectory:
 Note that at the moment the SENG Runtime and SENG SDK have the SENG Server address and port hardcoded, and assume it to be `127.0.0.1:12345/udp`.
 Please see the [respective SENG Server section](seng_server/README.md#serverdefault) for adapting it to your needs.
 The default setup allows to run all tests on a single SGX-enabled machine.
-However, it is intended to run the SENG Runtime/SDK on the client host, the SENG Server on the gateway host and 3rd party programs on the gateway or an external host if possible.
+However, it is intended to run the SENG Runtime/SDK on the client host, the SENG Server on the gateway host and 3rd party programs on the gateway or an external host if possible. See the [section below](#diffhosts) for multi-host configuration hints.
 Also note that the SENG Server currently can have problems handling more than 1 enclave
 at once (cf. [Limitations](#limitations) and [TODO.md](TODO.md)).
 Restart in case of unexpected problems and refer to the notes in the respective sections.
 
 **CAUTION**: the loopback destination address `127.0.0.1` is currently **NOT** supported *through*(!) the lwIP tunnel as lwIP will interpret and refuse it internally (cf. todos).
-For local tests, use your internal host IP instead.
+For local tests, use your internal host IP instead (cf. respective run instructions).
 
 
 ### <a name="rundemos" /> Running the SENG Components and Demo Apps
@@ -251,6 +251,12 @@ Two microbenchmarks are provided which measure the initialization time of (i) Gr
 The instructions for preparing and running the microbenchmarks are provided in the [README file of the SENG Runtime](seng_runtime/README.md#mbench).
 
 
+### <a name="diffhosts" /> Hints for Running SENG Server and Client(s) on separate Hosts
+The default instructions allow testing SENG locally on a single SGX-enabled machine.
+For running the SENG Server on a separate gateway host, you currently must manually adapt the hardcoded SENG Server IP addresses in the SENG Runtime and SENG SDK as described in the [SENG Server section](seng_server/README.md#serverdefault).
+Ensure that you share the correct SENG Server public key with the SENG Runtime/SDK hosts.
+When testing the demo and real-world apps in this setup, the easiest way is to run the 3rd party client/server tools (e.g., netcat) on the gateway host.
+If you want to run the 3rd party tools on separate external hosts, you must use port forwarding (NAT) rules on the gateway to make the Enclaves reachable for them. In addition, for "native" and "pure" benchmarking, you must ensure that all traffic passes through the gateway server (in both directions!) by using additional NATing (@gateway) and/or routing rules (@clients).
 
 
 ## <a name="limitations" /> Limitations
