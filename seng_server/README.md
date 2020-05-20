@@ -75,6 +75,7 @@ The current implementation of the SENG Server is based on [libuv](https://libuv.
 
 6. enable IPv4 forwarding:
     ```
+    # [@host]
     # enable until next reboot
     sudo sysctl -w net.ipv4.ip_forward=1
     ```
