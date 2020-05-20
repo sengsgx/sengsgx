@@ -28,10 +28,9 @@ support for server sockets (optional)
 
 ## Documentation
 The documentation is split across README.md files in all top-level subdirectories.
-This (root) README.md serves as starting point and contains relative pointers in chronological order to all relevant sections of the component documentations for building and running SENG.
-A research paper about SENG is under submission and will be linked as soon as it has been successfully published.
+This (root) README.md serves as starting point and contains relative pointers to all sections relevant for building and running SENG in chronological order.
 
-Note: checkout the HTML-parsed versions of the README.md files on Github at <https://github.com/sengsgx/sengsgx/blob/master/README.md>
+Note: for better readability (and clickable links), have a look at the HTML-parsed versions of the README.md files on Github at <https://github.com/sengsgx/sengsgx/blob/master/README.md>
 
 ## <a name="buildprep" /> Build Preparation
 Note: All build instructions have been tested under **Ubuntu 16.04.6 LTS** and kernel 4.15.0-91.
