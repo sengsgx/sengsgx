@@ -1,0 +1,13 @@
+SENG Runtime Microbenchmark (sample output formatted)
+=====================================================
+tcpip_thread_usec;          18,547
+ssl_init_usec;             329,658
+rsa_gen_key_usec;          113,130
+get_quote_usec;             16,083
+obtain_ias_report_usec;    682,385
+gen_x509_usec;               0,958
+setup_dtls_tunnel_ip_usec;   9,524
+tunnel_poll_thread_usec;    22,071
+total_setup_usec;        1,093,286
+----------------------------------
+                            ~ 1093 ms

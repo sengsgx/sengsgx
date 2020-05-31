@@ -1,0 +1,19 @@
+./test_seng_nginx.bash
+
+[...]
+*******************************************************************
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+*******************************************************************

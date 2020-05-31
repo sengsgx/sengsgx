@@ -1,0 +1,22 @@
+sudo ./src/seng_ossl_double_tunnel_server 127.0.0.1 12345
+
+Temporarily dropped to UID: 1000 and GID: 1000
+Welcome to the SENG Server
+Tunnel Port: 12345
+MTU: 1432
+Starting event loop
+WARNING: isvEnclaveQuoteStatus is GROUP_OUT_OF_DATE
+WARNING: isvEnclaveQuoteStatus is GROUP_OUT_OF_DATE
+Certificate's SGX information:
+  . MRENCLAVE = d20ae9b21ec4dd1bd1ac5643ca45a33e6fde6713860130c7afb1957a09f59e9a
+  . MRSIGNER  = ad373d1d526e45e3683aeaaf217ba2925024f05a626b0372da855ff4df057c6f
+Assigning internal IP: 192.168.28.2 to Enclave
+WARNING: isvEnclaveQuoteStatus is GROUP_OUT_OF_DATE
+WARNING: isvEnclaveQuoteStatus is GROUP_OUT_OF_DATE
+SengServer has received stop signal
+ShadowServer has already been shut down
+Stopping loop
+Walking all handles and mark them closed
+SengServer shutdown process has been initialised.
+Loop has stopped execution as all handles have been closed.
+Stopping SENG Server now

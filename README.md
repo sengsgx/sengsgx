@@ -17,6 +17,8 @@ with the SENG Runtime
 
 * `patches/` -- contains patch files for Graphene-SGX, sgx-ra-tls and [lwIP](https://savannah.nongnu.org/projects/lwip/)
 
+* `sample_logs/` -- contains sample console outputs for each test/app
+
 * `seng_runtime/` -- contains the client-side SENG Runtime based on the Graphene-SGX library OS
 
 * `seng_sdk/` -- contains the client-side SENG SDK based on the [Intel SGX SDK](https://github.com/intel/linux-sgx)

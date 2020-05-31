@@ -1,0 +1,10 @@
+./run_demoapp.bash 192.168.178.45
+
+[...]
+adapting vm.mmap_min_addr to 0
+running demo app
+*******************************************************************
+Trying to connect to: 192.168.178.45
+Successfully sent message!
+*******************************************************************
+restoring vm.mmap_min_addr setting

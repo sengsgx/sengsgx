@@ -1,0 +1,49 @@
+./test_seng_iperf.bash 192.168.178.45
+
+*******************************************************************
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+setsockopt: Invalid argument
+iperf3: getsockopt - Protocol not available
+iperf3: getsockopt - Protocol not available
+iperf3: getsockopt - Protocol not available
+iperf3: getsockopt - Protocol not available
+iperf3: getsockopt - Protocol not available
+iperf3: getsockopt - Protocol not available
+iperf3: getsockopt - Protocol not available
+iperf3: getsockopt - Protocol not available
+iperf3: getsockopt - Protocol not available
+iperf3: getsockopt - Protocol not available
+*** Error in `file:iperf3_seng': free(): invalid pointer: 0x000000000156d470 ***
+Connecting to host 192.168.178.45, port 5201
+Reverse mode, remote host 192.168.178.45 is sending
+[513] local 192.168.28.2 port 58312 connected to 192.168.178.45 port 5201
+[ ID] Interval           Transfer     Bandwidth
+[513]   0.00-1.00   sec  78.3 MBytes   657 Mbits/sec                  
+[513]   1.00-2.00   sec  76.1 MBytes   639 Mbits/sec                  
+[513]   2.00-3.00   sec  76.5 MBytes   641 Mbits/sec                  
+[513]   3.00-4.00   sec  75.8 MBytes   636 Mbits/sec                  
+[513]   4.00-5.00   sec  75.8 MBytes   636 Mbits/sec                  
+[513]   5.00-6.00   sec  75.5 MBytes   633 Mbits/sec                  
+[513]   6.00-7.00   sec  76.0 MBytes   638 Mbits/sec                  
+[513]   7.00-8.00   sec  76.7 MBytes   643 Mbits/sec                  
+[513]   8.00-9.00   sec  76.7 MBytes   644 Mbits/sec                  
+[513]   9.00-10.00  sec  75.0 MBytes   629 Mbits/sec                  
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bandwidth       Retr
+[513]   0.00-10.00  sec   763 MBytes   640 Mbits/sec    0             sender
+[513]   0.00-10.00  sec   763 MBytes   640 Mbits/sec                  receiver
+
+iperf Done.
+*******************************************************************

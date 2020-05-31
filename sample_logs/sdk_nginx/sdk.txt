@@ -1,0 +1,4 @@
+./sbin/seng_nginx
+
+nginx: [warn] "daemon" is not yet supported by SENG, ignored in /home/encl-dev/seng_sdk/ported_external_apps/nginx-1.10.3/build/conf/nginx.conf:4
+nginx: [warn] "master_process" is not yet supported by SENG, ignored in /home/encl-dev/seng_sdk/ported_external_apps/nginx-1.10.3/build/conf/nginx.conf:5

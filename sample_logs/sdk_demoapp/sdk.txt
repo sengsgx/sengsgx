@@ -1,0 +1,33 @@
+./app/app/src/DemoApp 192.168.178.45
+
+token_path: /home/encl-dev/app_enclave.token
+Successfully initialized the Enclave!
+Calling Enclave Demo
+[Enclave] Start tests
+[Enclave] Try calling the OCALL marked as potential "switchless"
+switchless_demo got called with arg 4711
+[Enclave] Trying to init SENG runtime
+[Enclave] Success! Starting network demo.
+[Enclave] Test creation of secure sockets
+[Enclave] s_udp_fd = 1024
+[Enclave] s_udp_fd2 = 1025
+[Enclave] s_tcp_fd = 1026
+[Enclave] Try closing secure sockets
+[Enclave] close: 0
+[Enclave] close: 0
+[Enclave] close: 0
+[Enclave] Trying to connect to demo target on 192.168.178.45:8391/tcp!
+[Enclave] payload size: 21
+[Enclave] Trying to send demo message 5 times
+[Enclave] seng_send: 21
+[Enclave] seng_send: 21
+[Enclave] seng_send: 21
+[Enclave] seng_send: 21
+[Enclave] seng_send: 21
+[Enclave] receive timeout (11)
+[Enclave] seng_recv: -1
+[Enclave] Testing mutex and waiting on a condition variable with SENG-added timeout support
+[Enclave] Inside critical section
+[Enclave] Going to wait 2 seconds
+[Enclave] Timeout!
+[Enclave] Finishing Enclave ECALL now

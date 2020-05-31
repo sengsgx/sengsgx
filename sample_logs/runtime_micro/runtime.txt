@@ -1,0 +1,5 @@
+./mbench_seng.bash
+
+[...]
+tcpip_thread_usec;ssl_init_usec;rsa_gen_key_usec;get_quote_usec;obtain_ias_report_usec;gen_x509_usec;setup_dtls_tunnel_ip_usec;tunnel_poll_thread_usec;total_setup_usec
+18547;329658;11313;16083;682385;958;9524;22071;1093286
