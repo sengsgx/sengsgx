@@ -240,6 +240,7 @@ namespace seng {
         
         bool whitelisted {false};
         sqlite3_stmt *pstmt {nullptr};
+        // TODO: additionally check enclave attributes (e.g., debug flag, SVN, ...) and/or mr_signer
         const char *CHECK_IF_WHITELISTED = "SELECT id FROM apps WHERE mr_enclave == ?;";
           
         /* CREATE PREPARED STATEMENT */

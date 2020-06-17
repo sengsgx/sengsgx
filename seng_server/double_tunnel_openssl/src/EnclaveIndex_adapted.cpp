@@ -92,6 +92,8 @@ namespace seng {
     }
 
     bool EnclaveIndex::is_whitelisted_app(sgx_report_body_t *report) {
+        // This is just a dummy implementation at the moment.
+        // See EnclaveSqliteIndex for a sample implementation.
         return true;
     }
 
