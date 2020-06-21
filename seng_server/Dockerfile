@@ -18,3 +18,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libmbedtls10 \
         libmbedtls-dev
 
+# for the SENG Netfilter module, iptables extension and user-space library
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libnl-genl-3-dev

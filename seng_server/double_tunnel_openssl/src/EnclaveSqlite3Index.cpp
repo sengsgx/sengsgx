@@ -12,9 +12,6 @@
 //#define DEBUG_ENCIDX
 
 
-const char *SIMPLE_QUERY_STR = "SELECT apps.mr_enclave, apps.mr_signer, apps.host_subnet, apps.host_submask, enclave_subnets.subnet, enclave_subnets.submask, enclave_subnets.gateway FROM apps JOIN enclave_subnets ON apps.enc_subnet_id=enclave_subnets.id WHERE apps.mr_enclave == ?;";
-
-
 namespace seng {
     static unsigned int get_number_of_set_bytes_ip4(in_addr_t netorder_submask);
 

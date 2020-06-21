@@ -18,11 +18,16 @@
 
 
 namespace seng {
+    struct SengSrvConfig {
+        optional<std::string> opt_db_path;
+        bool use_seng_netfilter_module;
+        bool enable_shadow_srv;
+    };
+
     class SengServerOpenSSL {
     public:
         SengServerOpenSSL(std::string &ip_addr, in_port_t tunnel_port,
-                   volatile sig_atomic_t * stop_marker_ptr, optional<std::string> opt_db_path,
-                   bool enable_shadow_srv);
+                   volatile sig_atomic_t * stop_marker_ptr, SengSrvConfig config);
         ~SengServerOpenSSL();
   
         void run();

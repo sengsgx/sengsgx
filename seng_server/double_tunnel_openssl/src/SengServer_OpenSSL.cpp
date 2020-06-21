@@ -11,6 +11,7 @@ extern "C" {
 
 #include "EnclaveIndex_adapted.hpp"
 #include "EnclaveSqlite3Index.hpp"
+#include "EnclaveNetfilterIndex.hpp"
 
 #include <iostream>
 #include <stdexcept>
@@ -32,17 +33,21 @@ using namespace std::experimental;
 namespace seng {
     SengServerOpenSSL::SengServerOpenSSL(std::string &ip_addr, in_port_t tunnel_port,
                              volatile sig_atomic_t * stop_marker_ptr,
-                             optional<std::string> opt_db_path,
-                             bool enable_shadow_srv) :
+                             SengSrvConfig config) :
     stop_marker_ptr(stop_marker_ptr), check_period_in_ms(5000), is_shutting_down(false),
-    shadow_srv_enabled(enable_shadow_srv), tunnel_ip(ip_addr), tunnel_port(tunnel_port),
+    shadow_srv_enabled(config.enable_shadow_srv), tunnel_ip(ip_addr), tunnel_port(tunnel_port),
     ssl_engine("ECDHE-RSA-AES256-GCM-SHA384"), shadower_service_up(nullptr) {
         
         // use dummy, or Sqlite3-based enclave index
+        auto opt_db_path = config.opt_db_path;
         if (!opt_db_path) {
             enclave_idx_sp = std::make_shared<EnclaveIndex>();
         } else {
-            enclave_idx_sp = std::make_shared<EnclaveSqliteIndex>(opt_db_path->c_str());
+            if (config.use_seng_netfilter_module) {
+                enclave_idx_sp = std::make_shared<EnclaveNetfilterIndex>(opt_db_path->c_str());
+            } else {
+                enclave_idx_sp = std::make_shared<EnclaveSqliteIndex>(opt_db_path->c_str());
+            }
         }
         
         ip_pckt_fwder_sp = std::make_shared<PacketForwarder>(enclave_idx_sp);

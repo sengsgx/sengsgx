@@ -22,14 +22,16 @@ const char *USAGE {"Usage: seng_ossl_tunnel_server [-d <sqlite.db>] [-s] <tunnel
     "\nOptions:\n"
     "-d <sqlite.db>  = optional path to SQLite3 database\n"
     "-h              = show this help message\n"
+    "-n              = interact with SENG Netfilter module (requires -d)\n"
     "-s              = enable ShadowServer for auto-nat/port shadowing at 192.168.28.1:2409/tcp\n"};
 
 int main(int argc, char *argv[]) {
     bool use_tls = false;
     int c;
     char *db_path {nullptr};
+    bool use_seng_netfilter_module {false};
     bool enable_shadow_srv {false};
-    while ((c = getopt (argc, argv, "hd:s")) != -1)
+    while ((c = getopt (argc, argv, "hd:sn")) != -1)
         switch (c)
     {
         case 'h':
@@ -41,6 +43,9 @@ int main(int argc, char *argv[]) {
         case 's':
             enable_shadow_srv = true;
             continue;
+        case 'n':
+            use_seng_netfilter_module = true;
+            continue;
         default:
             std::cout << USAGE << std::endl;
             return EXIT_FAILURE;
@@ -49,6 +54,13 @@ int main(int argc, char *argv[]) {
     // '-d' and '-s' together currently not supported yet
     if (db_path && enable_shadow_srv) {
         std::cerr << "ERROR: '-d' and '-s' are not yet supported together. Choose at most one of them." << std::endl;
+        std::cout << USAGE << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // '-n' requires '-d'
+    if (!db_path && use_seng_netfilter_module) {
+        std::cerr << "ERROR: '-n'  requires '-d' option. Choose both or none." << std::endl;
         std::cout << USAGE << std::endl;
         return EXIT_FAILURE;
     }
@@ -123,8 +135,13 @@ int main(int argc, char *argv[]) {
     std::cout << "Welcome to the SENG Server" << std::endl;
     
     std::cout << "Tunnel Port: " << tunnel_port << std::endl;
-    seng::SengServerOpenSSL seng_server {tunnel_ip, tunnel_port, &stop_marker, (db_path ? make_optional<std::string>(db_path) : nullopt),
-                                        enable_shadow_srv };
+
+    seng::SengSrvConfig config;
+    config.opt_db_path = (db_path ? make_optional<std::string>(db_path) : nullopt);
+    config.use_seng_netfilter_module = use_seng_netfilter_module;
+    config.enable_shadow_srv = enable_shadow_srv;
+
+    seng::SengServerOpenSSL seng_server {tunnel_ip, tunnel_port, &stop_marker, config};
     
     std::thread seng_srv_thread {&seng::SengServerOpenSSL::run, &seng_server};
     try {

@@ -5,11 +5,14 @@ find_package(Protobuf REQUIRED)
 find_package(Threads REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(OpenSSL REQUIRED SSL Crypto)
+if (SENG_NETFILTER)
+        add_subdirectory(../../seng-extension/seng-netfilter
+                ${CMAKE_CURRENT_BINARY_DIR}/seng-netfilter/)
+endif()
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS seng.proto)
 
-add_executable(seng_ossl_double_tunnel_server
-        SengMain_adapted.cpp ../include/SengMain_adapted.hpp
+set(sengsrv_SOURCES SengMain_adapted.cpp ../include/SengMain_adapted.hpp
         SengServer_OpenSSL.cpp ../include/SengServer_OpenSSL.hpp
         SSLEngine_OpenSSL.cpp ../include/SSLEngine_OpenSSL.hpp
         SSLEngine.cpp ../include/SSLEngine.hpp # for shadow server
@@ -22,6 +25,11 @@ add_executable(seng_ossl_double_tunnel_server
         enc_srv_socks/ClientSocketShadower_adapted.cpp ../include/enc_srv_socks/ClientSocketShadower_adapted.hpp
         enc_srv_socks/ShadowRule.cpp ../include/enc_srv_socks/ShadowRule.hpp
         ${PROTO_SRCS} ${PROTO_HDRS})
+if (SENG_NETFILTER)
+        set(sengsrv_SOURCES ${sengsrv_SOURCES} EnclaveNetfilterIndex.cpp ../include/EnclaveNetfilterIndex.hpp)
+endif()
+
+add_executable(seng_ossl_double_tunnel_server ${sengsrv_SOURCES})
 
 target_link_libraries(seng_ossl_double_tunnel_server PRIVATE LibUV::LibUV)
 target_link_libraries(seng_ossl_double_tunnel_server PRIVATE ${CHALLENGER_LIBRARY_OPENSSL}
@@ -34,6 +42,9 @@ target_link_libraries(seng_ossl_double_tunnel_server PRIVATE ${MBEDTLS_LIBRARIES
 target_link_libraries(seng_ossl_double_tunnel_server PRIVATE protobuf::libprotobuf)
 target_link_libraries(seng_ossl_double_tunnel_server PRIVATE Threads::Threads)
 target_link_libraries(seng_ossl_double_tunnel_server PRIVATE ${SQLite3_LIBRARIES})
+if (SENG_NETFILTER)
+        target_link_libraries(seng_ossl_double_tunnel_server PRIVATE sengnetfilter)
+endif()
 
 target_include_directories(seng_ossl_double_tunnel_server PUBLIC ../include)
 
