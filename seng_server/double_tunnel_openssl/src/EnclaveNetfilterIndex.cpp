@@ -10,10 +10,7 @@
 #include <cassert>
 
 extern "C" {
-    #include "seng_netfilter.h"
-
-    struct nl_sock* nlsock;
-    struct nl_cb *cb;
+    #include "seng_netfilter_api.h"
 }
 
 //#define DEBUG_ENCIDX
@@ -44,15 +41,75 @@ namespace seng {
 
     void EnclaveNetfilterIndex::cleanup_netfilter_connection() {
         flush_module();
-        nl_cb_put(cb);
-        nl_socket_free(nlsock);
+        cleanup_nl_sock();
+    }
+
+    std::vector<std::string>
+    EnclaveNetfilterIndex::query_categories(sgx_report_body_t *report) {
+        sqlite3_stmt *pstmt {nullptr};
+        std::vector<std::string> categories {};
+           const char *CHECK_IF_WHITELISTED = "SELECT id FROM apps WHERE mr_enclave == ?;";
+        const char *QUERY_APP_CATEGORIES = "SELECT categories.name FROM categories JOIN apps ON categories.apps_id == apps.id WHERE apps.mr_enclave == ?;";
+        /* CREATE PREPARED STATEMENT */
+        int ret = sqlite3_prepare_v2(db_con, QUERY_APP_CATEGORIES, strlen(QUERY_APP_CATEGORIES), &pstmt, nullptr);
+        if (ret != SQLITE_OK) {
+            std::cerr << "error: " << sqlite3_errmsg(db_con) << std::endl;
+            throw std::runtime_error("Failed to query app catgories");
+        }
+        
+        /* BIND VALUES TO PREPARED STATEMENT */
+        // TODO: correct memory cleanup?
+        ret = sqlite3_bind_blob(pstmt, 1, report->mr_enclave.m, SGX_HASH_SIZE, SQLITE_STATIC);
+        if (ret != SQLITE_OK) {
+            sqlite3_finalize(pstmt);
+            throw std::runtime_error("Failed to bind mr_enclave");
+        }
+        
+        // query all categories for the app
+        while((ret = sqlite3_step(pstmt)) == SQLITE_ROW) {
+            char *category_name = NULL;
+            category_name = (char *)sqlite3_column_text(pstmt, 0);
+            // TODO: check for error
+            categories.push_back(category_name);
+        }
+
+        if (ret != SQLITE_DONE) {
+            std::cerr << "Error while querying categories for application" << std::endl;
+            categories.clear();
+        }
+
+        sqlite3_finalize(pstmt);
+        return categories;
     }
 
     bool EnclaveNetfilterIndex::add_enclave_to_module(u_int32_t enclave_ip, sgx_report_body_t *report,
             u_int32_t host_ip) {
-        // TODO: query and add categories
-        //const char *QUERY_APP_CATEGORIES = "SELECT name FROM categories JOIN apps ON categories.apps_id == apps.id WHERE apps.mr_enclave == ?;"
-        return 0 == add_enclave_ack(enclave_ip, (char *)report->mr_enclave.m, host_ip, NULL);
+
+        // Add Enclave IP to netfilter module
+        bool success = 0 == add_enclave_ack(enclave_ip, report->mr_enclave.m, host_ip, NULL);
+
+        // Check if there is already an active enclave running the same application
+        // NOTE: *enclave_idx_guard already held*
+        auto it = std::find_if(active_enclaves.begin(), active_enclaves.end(),
+            [report](std::unique_ptr<TunnelToEnclaveOpenSSL> &up)->bool {
+                return 0 == memcmp(up->quote.report_body.mr_enclave.m,
+                    report->mr_enclave.m, SGX_HASH_SIZE);
+            });
+        
+        // case: found something
+        if (it != active_enclaves.end()) return success;
+
+        // Query and add categories
+        auto categories = query_categories(report);
+        for (std::string &s : categories) {
+            std::cout << "Adding category: " << s << std::endl;
+            cat_to_app_ack(OP_ADD, report->mr_enclave.m, s.c_str());
+        }
+        return success;
+    }
+
+    bool EnclaveNetfilterIndex::remove_enclave_from_module(u_int32_t enclave_ip) {
+        return 0 == remove_enclave_ack(enclave_ip);
     }
 
     void EnclaveNetfilterIndex::init_database(const char *path_to_db) {
@@ -132,8 +189,6 @@ namespace seng {
             throw std::runtime_error("The IP request for the new Enclave is already marked as in use");
         }
 
-        std::cout << "untrusted_tunnel_host_ip: " << inet_ntoa({tte_up->untrusted_tunnel_host_ip}) << std::endl;
-
         // add to module
         if (!add_enclave_to_module(enclave_ip, &tte_up->quote.report_body,
             tte_up->untrusted_tunnel_host_ip)) {
@@ -154,19 +209,13 @@ namespace seng {
         // Valid client number?
         if (2 <= cli_num && cli_num <= 255) {
             client_num_bitset.reset(cli_num);
-
-            // inform kernel module
-            if (remove_enclave_ack(enclave_ip) != EXIT_SUCCESS) {
-                std::cerr << "Failed to remove enclave IP " << inet_ntoa({enclave_ip}) << " from kernel module" << std::endl;
-            }
-
+            // note/todo: Could also remove enclave IP from kernel module here
             return true;
         }
         return false;
     }
 
     bool EnclaveNetfilterIndex::is_whitelisted_app(sgx_report_body_t *report) {
-        
         bool whitelisted {false};
         sqlite3_stmt *pstmt {nullptr};
         // TODO: additionally check enclave attributes (e.g., debug flag, SVN, ...) and/or mr_signer
@@ -206,5 +255,14 @@ namespace seng {
         };
 
         return {nc};
+    }
+
+    void EnclaveNetfilterIndex::mark_enclave_tunnel_closed(in_addr_t enclave_ip) {
+        // call superclass virtual function
+        this->EnclaveIndexBase::mark_enclave_tunnel_closed(enclave_ip);
+        // try to inform the kernel module
+        if (!remove_enclave_from_module(enclave_ip)) {
+            std::cerr << "Failed to remove enclave IP " << inet_ntoa({enclave_ip}) << " from kernel module" << std::endl;
+        }
     }
  }

@@ -62,7 +62,7 @@ namespace seng {
     public:
         virtual void add_new_enclave_tunnel(std::unique_ptr<TunnelToEnclaveOpenSSL> tte_up, in_addr_t internal_ip) = 0;
         
-        void mark_enclave_tunnel_closed(in_addr_t enclave_ip);
+        virtual void mark_enclave_tunnel_closed(in_addr_t enclave_ip);
         void cleanup_closed_tunnels();
 
         bool is_active_enclave(in_addr_t enclave_ip);

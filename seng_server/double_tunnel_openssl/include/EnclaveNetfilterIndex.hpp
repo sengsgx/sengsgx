@@ -37,7 +37,10 @@ namespace seng {
 
         bool add_enclave_to_module(u_int32_t enclave_ip, sgx_report_body_t *report,
             u_int32_t host_ip);
-        
+        bool remove_enclave_from_module(u_int32_t enclave_ip);
+
+        std::vector<std::string> query_categories(sgx_report_body_t *report);
+
         in_addr_t get_free_internal_ip(in_addr_t enc_subnet) override;
         
         bool release_enclave_ip(in_addr_t enclave_ip) override;
@@ -62,6 +65,7 @@ namespace seng {
         EnclaveNetfilterIndex(EnclaveNetfilterIndex &&) noexcept = delete;
         
         void add_new_enclave_tunnel(std::unique_ptr<TunnelToEnclaveOpenSSL> tte_up, in_addr_t internal_ip) override;
+        void mark_enclave_tunnel_closed(in_addr_t enclave_ip) override;
     };
 }
 
