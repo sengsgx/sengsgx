@@ -1,7 +1,7 @@
 #ifndef SENG_ENCNETFLTIDX_HPP
 #define SENG_ENCNETFLTIDX_HPP
 
-#include "EncIdxBase.hpp"
+#include "EnclaveIndex_adapted.hpp"
 
 #include <vector>
 #include <memory>
@@ -24,7 +24,7 @@ using namespace std::experimental;
 
 
 namespace seng {
-    class EnclaveNetfilterIndex: public EnclaveIndexBase {  
+    class EnclaveNetfilterIndex: public EnclaveIndex {
     private:
         //! connection to database
         sqlite3 *db_con;
@@ -35,27 +35,12 @@ namespace seng {
 
         void cleanup_netfilter_connection(void);
 
-        bool add_enclave_to_module(u_int32_t enclave_ip, sgx_report_body_t *report,
-            u_int32_t host_ip);
-        bool remove_enclave_from_module(u_int32_t enclave_ip);
+        bool add_enclave_to_module(uint32_t enclave_ip, uint8_t mr_enclave[], uint32_t host_ip);
+        bool remove_enclave_from_module(uint32_t enclave_ip);
 
-        std::vector<std::string> query_categories(sgx_report_body_t *report);
-
-        in_addr_t get_free_internal_ip(in_addr_t enc_subnet) override;
-        
-        bool release_enclave_ip(in_addr_t enclave_ip) override;
-
-        unsigned char next_potential_client_number;
-        std::bitset<256> client_num_bitset;        
+        std::vector<std::string> query_categories(uint8_t mr_enclave[]);
 
     public:
-        const in_addr_t base_subnet;
-        const in_addr_t netmask, gateway;
-
-        bool is_whitelisted_app(sgx_report_body_t *report) override;
-        
-        optional<NetworkConfig> get_enclave_ip(sgx_report_body_t *report, in_addr_t host_ip) override;
-        
         EnclaveNetfilterIndex(const char *path_to_db);
         ~EnclaveNetfilterIndex();
         
