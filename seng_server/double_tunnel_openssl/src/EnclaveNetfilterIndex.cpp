@@ -89,10 +89,14 @@ namespace seng {
 
         // Query and add categories
         auto categories = query_categories(mr_enclave);
+#ifdef DEBUG_ENCIDX
         std::cout << "Will now try to add categories!" << std::endl;
+#endif
         for (std::string &s : categories) {
+#ifdef DEBUG_ENCIDX
             std::cout << "Adding category: " << s << std::endl;
-            cat_to_app_ack(OP_ADD, mr_enclave, s.c_str());
+#endif
+            cat_to_app_ack(mr_enclave, s.c_str());
         }
         return success;
     }
