@@ -21,10 +21,6 @@ namespace seng {
         if (prep_nl_sock() != SQLITE_OK) {
             throw std::runtime_error("Failed to open netlink socket to SENG module (Is the kernel module loaded?)");
         }
-        if (enable_allowlist_checks() != EXIT_SUCCESS) {
-            cleanup_netfilter_connection();
-            throw std::runtime_error("Failed to mark DB as ready");
-        }
     }
 
     void EnclaveNetfilterIndex::cleanup_netfilter_connection() {
