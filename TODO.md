@@ -20,6 +20,7 @@ The following is a list of unordered todos.
 * the SENG Server currently can have problems handling multiple Enclaves, because its current use of SO_REUSEPORT causes problems if newly connecting Enclaves are not bound to the fresh welcome socket by the kernel (cf. discussion in `SengServer_OpenSSL.cpp`)
 * option to only build the minimum of sgx-ra-tls required for the SENG server
 * SENG Server does not yet check Enclave attributes and/or the signer
+* SENG Server does not yet actively clean conntrack entries before re-assigning an Enclave IP
 
 
 ### SENG Runtime

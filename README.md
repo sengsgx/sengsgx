@@ -287,6 +287,7 @@ The current protoype has a number of limitations, including:
 * the SENG Server can have problems handling multiple Enclaves, because of its current reliance on SO_REUSEPORT
 * SQLite3 database support, but no thorough database integration yet
 * SENG Server does not yet check Enclave attributes and/or mr_signer
+* SENG Server does not yet actively clean conntrack entries before re-assigning an Enclave IP
 * instable Graphene-SGX exitless O/ECALLs
 * loopback destination IP (127.0.0.1) through(!) the tunnel is not yet working, because lwIP interprets and refuses such traffic internally
 * missing shutdown API for SENG SDK
