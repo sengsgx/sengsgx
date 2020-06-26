@@ -32,7 +32,6 @@ namespace seng {
     EnclaveNetfilterIndex::query_categories(uint8_t mr_enclave[]) {
         sqlite3_stmt *pstmt {nullptr};
         std::vector<std::string> categories {};
-           const char *CHECK_IF_WHITELISTED = "SELECT id FROM apps WHERE mr_enclave == ?;";
         const char *QUERY_APP_CATEGORIES = "SELECT categories.name FROM categories JOIN apps ON categories.apps_id == apps.id WHERE apps.mr_enclave == ?;";
         /* CREATE PREPARED STATEMENT */
         int ret = sqlite3_prepare_v2(db_con, QUERY_APP_CATEGORIES, strlen(QUERY_APP_CATEGORIES), &pstmt, nullptr);
