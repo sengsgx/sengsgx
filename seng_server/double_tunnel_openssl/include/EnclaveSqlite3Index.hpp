@@ -63,7 +63,7 @@ namespace seng {
         in_addr_t get_submask(in_addr_t enc_subnet);
 
     public:
-        bool is_whitelisted_app(sgx_report_body_t *report) override;
+        bool is_allowlisted_app(sgx_report_body_t *report) override;
         
         optional<NetworkConfig> get_enclave_ip(sgx_report_body_t *report, in_addr_t host_ip) override;
         

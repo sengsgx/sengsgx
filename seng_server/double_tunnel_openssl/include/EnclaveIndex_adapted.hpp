@@ -37,7 +37,7 @@ namespace seng {
         ~EnclaveIndex();
 
         bool release_enclave_ip(in_addr_t enclave_ip) override;
-        bool is_whitelisted_app(sgx_report_body_t *report) override;
+        bool is_allowlisted_app(sgx_report_body_t *report) override;
         optional<NetworkConfig> get_enclave_ip(sgx_report_body_t *report, in_addr_t host_ip) override;
         in_addr_t get_free_internal_ip(in_addr_t enc_subnet) override;
         

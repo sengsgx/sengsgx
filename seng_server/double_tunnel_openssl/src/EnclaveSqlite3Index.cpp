@@ -233,17 +233,17 @@ namespace seng {
         return false;
     }
 
-    bool EnclaveSqliteIndex::is_whitelisted_app(sgx_report_body_t *report) {
+    bool EnclaveSqliteIndex::is_allowlisted_app(sgx_report_body_t *report) {
         
-        bool whitelisted {false};
+        bool allowlisted {false};
         sqlite3_stmt *pstmt {nullptr};
         // TODO: additionally check enclave attributes (e.g., debug flag, SVN, ...) and/or mr_signer
-        const char *CHECK_IF_WHITELISTED = "SELECT id FROM apps WHERE mr_enclave == ?;";
+        const char *CHECK_IF_ALLOWLISTED = "SELECT id FROM apps WHERE mr_enclave == ?;";
           
         /* CREATE PREPARED STATEMENT */
-        int ret = sqlite3_prepare_v2(db_con, CHECK_IF_WHITELISTED, strlen(CHECK_IF_WHITELISTED), &pstmt, nullptr);
+        int ret = sqlite3_prepare_v2(db_con, CHECK_IF_ALLOWLISTED, strlen(CHECK_IF_ALLOWLISTED), &pstmt, nullptr);
         if (ret != SQLITE_OK) {
-            throw std::runtime_error("Failed to query app whitelist");
+            throw std::runtime_error("Failed to query app allowlist");
         }
         
         /* BIND VALUES TO PREPARED STATEMENT */
@@ -256,16 +256,17 @@ namespace seng {
         
         // check if at least 1 result row
         if (sqlite3_step(pstmt) == SQLITE_ROW) {
-            whitelisted = true;
+            allowlisted = true;
         }
         
         sqlite3_finalize(pstmt);
-        return whitelisted;
+        return allowlisted;
     }
 
     optional<NetworkConfig> EnclaveSqliteIndex::get_enclave_ip(sgx_report_body_t *report, in_addr_t host_ip) {
         
-        if (!is_whitelisted_app(report)) return {};
+        // TODO: might be redundant at the moment
+        if (!is_allowlisted_app(report)) return {};
         
         optional<in_addr_t> enclave_subnet {};
         sqlite3_stmt *pstmt {nullptr};
