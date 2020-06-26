@@ -53,7 +53,7 @@ namespace seng {
         optional<in_addr_t> get_ip_of_enclaves_tunnel_host(in_addr_t enclave_ip);
         sgx_quote_t get_enclave_quote(in_addr_t enclave_ip);
         
-        virtual bool is_whitelisted_app(sgx_report_body_t *report) = 0;
+        virtual bool is_allowlisted_app(sgx_report_body_t *report) = 0;
         virtual optional<NetworkConfig> get_enclave_ip(sgx_report_body_t *report, in_addr_t host_ip) = 0;
 
     protected:

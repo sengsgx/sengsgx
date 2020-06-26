@@ -252,7 +252,7 @@ namespace seng {
         std::cout << std::endl;
 //#endif
         
-        return enclave_idx_sp->is_whitelisted_app(body);
+        return enclave_idx_sp->is_allowlisted_app(body);
         // TODO: perform checks on report
         //return true;
     }
