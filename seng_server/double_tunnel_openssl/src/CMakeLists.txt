@@ -5,10 +5,10 @@ find_package(Protobuf REQUIRED)
 find_package(Threads REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(OpenSSL REQUIRED SSL Crypto)
-if (SENG_NETFILTER)
-        add_subdirectory(../../seng-extension/seng-netfilter
-                ${CMAKE_CURRENT_BINARY_DIR}/seng-netfilter/)
-endif()
+
+# SENG Netfilter Extension
+add_subdirectory(../../seng-extension/seng-netfilter
+        ${CMAKE_CURRENT_BINARY_DIR}/seng-netfilter/)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS seng.proto)
 
@@ -25,9 +25,9 @@ set(sengsrv_SOURCES SengMain_adapted.cpp ../include/SengMain_adapted.hpp
         enc_srv_socks/ClientSocketShadower_adapted.cpp ../include/enc_srv_socks/ClientSocketShadower_adapted.hpp
         enc_srv_socks/ShadowRule.cpp ../include/enc_srv_socks/ShadowRule.hpp
         ${PROTO_SRCS} ${PROTO_HDRS})
-if (SENG_NETFILTER)
-        set(sengsrv_SOURCES ${sengsrv_SOURCES} EnclaveNetfilterIndex.cpp ../include/EnclaveNetfilterIndex.hpp)
-endif()
+
+# SENG Netfilter Extension
+set(sengsrv_SOURCES ${sengsrv_SOURCES} EnclaveNetfilterIndex.cpp ../include/EnclaveNetfilterIndex.hpp)
 
 add_executable(seng_ossl_double_tunnel_server ${sengsrv_SOURCES})
 
@@ -42,9 +42,8 @@ target_link_libraries(seng_ossl_double_tunnel_server PRIVATE ${MBEDTLS_LIBRARIES
 target_link_libraries(seng_ossl_double_tunnel_server PRIVATE protobuf::libprotobuf)
 target_link_libraries(seng_ossl_double_tunnel_server PRIVATE Threads::Threads)
 target_link_libraries(seng_ossl_double_tunnel_server PRIVATE ${SQLite3_LIBRARIES})
-if (SENG_NETFILTER)
-        target_link_libraries(seng_ossl_double_tunnel_server PRIVATE sengnetfilter)
-endif()
+# SENG Netfilter Extension
+target_link_libraries(seng_ossl_double_tunnel_server PRIVATE sengnetfilter)
 
 target_include_directories(seng_ossl_double_tunnel_server PUBLIC ../include)
 

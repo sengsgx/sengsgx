@@ -22,7 +22,7 @@ const char *USAGE {"Usage: seng_ossl_tunnel_server [-d <sqlite.db>] [-s] <tunnel
     "\nOptions:\n"
     "-d <sqlite.db>  = optional path to SQLite3 database\n"
     "-h              = show this help message\n"
-    "-n              = interact with SENG Netfilter module (requires -d)\n"
+    "-n              = use SENG Netfilter Extension for rule enforcement (requires -d)\n"
     "-s              = enable ShadowServer for auto-nat/port shadowing at 192.168.28.1:2409/tcp\n"};
 
 int main(int argc, char *argv[]) {

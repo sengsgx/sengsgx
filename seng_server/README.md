@@ -99,8 +99,12 @@ tunnel_port     = UDP port on which the server will listen
 Options:
 -d <sqlite.db>  = optional path to SQLite3 database
 -h              = show this help message
+-n              = use SENG Netfilter Extension for rule enforcement (requires -d)
 -s              = enable ShadowServer for auto-nat/port shadowing at 192.168.28.1:2409/tcp
 ```
+Note: The '-n' option depends on the [SENG Netfilter Extension](https://github.com/sengsgx/seng-netfilter) and is not part of "vanilla SENG".
+The database format is slightly different when enabling the '-n' option (see below).
+
 **CAUTION**: The '-s' option is experimental and currently incompatible with the '-d' option, because the ShadowServer only binds to `192.168.28.1:2409/tcp` (hardcoded).
 
 
@@ -157,6 +161,25 @@ If you change the Enclave Subnetworks, you also have to adapt the IP addresses o
 
 Note: You can check the output of the SENG Server to compare whether the Enclave measurements match the entries in the database whitelist.
 The Enclave signer value is not yet used by the SENG Server.
+
+
+### Running the SENG Server with the SENG Netfilter Extension
+The [SENG Netfilter Extension](https://github.com/sengsgx/seng-netfilter) can be used together with the SENG Server to enforce the per-application policies directly via a Netfilter/iptables extension rather than via application-specific Enclave Subnetworks.
+The extension adds new SENG rule specifiers to iptables for defining per-application policies based on the app measurements, app categories, and untrusted host IPs.
+The SENG Netfilter (kernel) module has to be loaded and the SENG Server has to be run with '-n' and '-d' options to enable communication between the extension module and the server.
+The database scheme for the extension is different than the "vanilla" SQLite3 one, because it uses only a single Enclave Subnetwork (dropping app-specific subnetworks) and instead allows the definition of app categories for grouping shielded apps.
+```
+# [@seng-server]
+cd ~/seng_server/double_tunnel_openssl/
+sqlite3 netfilter_demo_sqlite3.db < seng_netfilter_db_creator.sql
+cd build/
+sudo ./src/seng_ossl_double_tunnel_server -n -d ../netfilter_demo_sqlite3.db 127.0.0.1 12345
+```
+The current demo database scheme defines the allowlisted applications in the `"apps"` table and the app categories in the `"categories"` table.
+The SENG Server informs the SENG Netfilter module about newly assigned Enclave IPs and their associated Enclave metadata (incl. measurement, category, host IP) and about Enclave shutdowns.
+See the [SENG Netfilter Extension](https://github.com/sengsgx/seng-netfilter) README file for more information on the extension and for a set of sample iptables rules.
+
+Note: At the moment `192.168.28.0/24` is used for the single Enclave subnetwork.
 
 
 ### <a name="shadowsrv" /> Running the SENG Server with enabled Shadow Server (Experimental!)
