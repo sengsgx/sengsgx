@@ -125,7 +125,7 @@ namespace seng {
         try {
             assert(geteuid() == old_euid && getegid() == old_egid);
             if( seteuid(0) < 0 ) { throw std::runtime_error("Failed to become Root again"); }
-            if( setegid(0) < 0 ) { int ret; do {ret = seteuid(1000); perror(nullptr);} while(ret < 0); }
+            if( setegid(0) < 0 ) { int ret; do {ret = seteuid(old_euid); perror(nullptr);} while(ret < 0); }
             
             assert(geteuid() == 0 && getegid() == 0);
 #ifdef DEBUG_SHADOWRULE
