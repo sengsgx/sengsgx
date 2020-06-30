@@ -7,7 +7,7 @@ find_package(SQLite3 REQUIRED)
 find_package(OpenSSL REQUIRED SSL Crypto)
 
 # SENG Netfilter Extension
-add_subdirectory(../../seng-extension/seng-netfilter
+add_subdirectory(../../seng-netfilter/user-library
         ${CMAKE_CURRENT_BINARY_DIR}/seng-netfilter/)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS seng.proto)
