@@ -21,6 +21,8 @@ The following is a list of unordered todos.
 * option to only build the minimum of sgx-ra-tls required for the SENG server
 * SENG Server does not yet check Enclave attributes and/or the signer
 * SENG Server does not yet actively clean conntrack entries before re-assigning an Enclave IP
+* drop SENG Server e{u,g}id to actual user/group id, not to hardcoded 1000
+* try to replace SENG Server's temporary root requirement with CAP_NET_ADMIN
 
 
 ### SENG Runtime
