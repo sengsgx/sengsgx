@@ -20,4 +20,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # for the SENG Netfilter module, iptables extension and user-space library
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libnl-genl-3-dev
+        libnl-genl-3-dev \
+        libnetfilter-conntrack-dev
