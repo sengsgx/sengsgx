@@ -4,3 +4,6 @@
 [submodule "sgx-ra-tls"]
 	path = sgx-ra-tls
 	url = https://github.com/cloud-security-research/sgx-ra-tls
+[submodule "seng_server/seng-netfilter"]
+	path = seng_server/seng-netfilter
+	url = https://github.com/sengsgx/seng-netfilter.git
