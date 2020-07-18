@@ -28,11 +28,18 @@ with the SENG Runtime
 * `tools/` -- currently only contains the Client Socket Blocker tool used for automatic DNAT
 support for server sockets (optional)
 
+We have also implemented the [SENG Netfilter](https://github.com/sengsgx/seng-netfilter) extension for SENG which integrates the per-application firewall rules of SENG into Netfilter/Xtables and iptables.
+Support for SENG Netfilter is integrated into the SENG Server (cf. run instructions).
+The SENG Netfilter extension components are provided as a [separate open source project](https://github.com/sengsgx/seng-netfilter).
+
 ## Documentation
 The documentation is split across README.md files in all top-level subdirectories.
 This (root) README.md serves as starting point and contains relative pointers to all sections relevant for building and running SENG in chronological order.
 
 Note: for better readability (and clickable links), have a look at the HTML-parsed versions of the README.md files on Github at <https://github.com/sengsgx/sengsgx/blob/master/README.md>
+
+Note(2): the relative pointers do not work on the new profile README of Github.
+Visit the main [SENG repository](https://github.com/sengsgx/sengsgx).
 
 ### Research Paper
 This repository belongs to a research project by [Fabian Schwarz](https://github.com/fa-schwarz) and Christian Rossow from the CISPA Helmholtz Center for Information Security.
