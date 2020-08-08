@@ -8,6 +8,7 @@ The current implementation of the SENG Server is based on [libuv](https://libuv.
 [OpenSSL](https://www.openssl.org/) and a patched version of
 [sgx-ra-tls](https://github.com/cloud-security-research/sgx-ra-tls).
 
+Note: We also provide a multi-threaded rewrite in Go, the [SENG Go-Server](https://github.com/sengsgx/seng-gosrv).
 
 ## <a name="build" /> Building the SENG Server
 0. follow the [build preparation steps](../README.md#buildprep)
