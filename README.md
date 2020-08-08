@@ -184,6 +184,7 @@ The certificate will be pinned by the SENG Runtime and SENG SDK.
     openssl req -x509 -newkey rsa:3072 -keyout srv_key.pem -out srv_cert.pem -days 365 -nodes
     ```
 
+    Note: We have added ECDSA support to the SENG Runtime and SENG SDK, but currently only the SENG Go-Server has server-side support for it. See the instructions of the [SENG Go-Server](https://github.com/sengsgx/seng-gosrv) for enabling it.
 
 ## <a name="clibuildprep" /> Client-side Build Preparation
 The following preparatory steps have to be performed **before building** any client-side
