@@ -12,8 +12,10 @@ extern "C" {
 
 extern "C" {
     #include <ra-attester.h>
+    #include <openssl/obj_mac.h>
 }
 
+//#define USE_ECDSA 1
 //#define OSSL_SSL_DEBUG_PRINTS
 
 
@@ -133,10 +135,19 @@ namespace seng {
         //ret = SSL_CTX_use_certificate(ctx, &cli_cert);
         if (ret != 1) throw std::runtime_error("use_certificate_ASN1 failed");
 
+#ifdef USE_ECDSA
+        // type 408
+        ret = SSL_CTX_use_PrivateKey_ASN1(NID_X9_62_id_ecPublicKey, ctx, der_key, key_len);
+        if (ret != 1) {
+            printf("Failed to load EC key\n");
+            throw std::runtime_error("use_PrivateKey_ASN1 failed");
+        }
+#else
         ret = SSL_CTX_use_RSAPrivateKey_ASN1(ctx, der_key, key_len);
         //ret = SSL_CTX_use_RSAPrivateKey(ctx, &cli_rsa);
         if (ret != 1) throw std::runtime_error("use_RSAPrivateKey_ASN1 failed");
-        
+#endif
+
         ret = SSL_CTX_check_private_key(ctx); // check that cert and RSA priv. key are consistent!
         if (ret != 1) throw std::runtime_error("check_private_key failed");
     }

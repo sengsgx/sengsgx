@@ -13,10 +13,15 @@ extern "C" {
     #include <lwip/netifapi.h> // netifapi_netif_set_link_down
 }
 
+//#define USE_ECDSA 1
 //#define TUN_DEBUG
 
 namespace seng {
+#ifdef USE_ECDSA
+    TunnelNetif::TunnelNetif() : ssl_engine("ECDHE-ECDSA-AES128-GCM-SHA256"),
+#else
     TunnelNetif::TunnelNetif() : ssl_engine("ECDHE-RSA-AES256-GCM-SHA384"),
+#endif
         recv_tun_fd(-1), send_tun_fd(-1), recv_ssl(nullptr), send_ssl(nullptr) {
         ssl_engine.configure();
 #ifdef TUN_DEBUG

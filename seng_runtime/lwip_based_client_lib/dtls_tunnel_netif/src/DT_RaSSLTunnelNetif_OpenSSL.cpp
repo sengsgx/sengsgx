@@ -49,6 +49,8 @@ struct sys_thread {
     pthread_t pthread;
 };
 
+//#define USE_ECDSA 1
+
 namespace seng {
     void RaSSLTunnelNetifOpenSSL::trySetNetifPtr(struct netif *p) {
         if (own_netif_ptr == nullptr) own_netif_ptr = p;
@@ -56,7 +58,13 @@ namespace seng {
     
     RaSSLTunnelNetifOpenSSL::RaSSLTunnelNetifOpenSSL(struct netif *netif) :
     tunnel_dst_ip("127.0.0.1"),
-    tunnel_dst_port("12345"), ssl_engine("ECDHE-RSA-AES256-GCM-SHA384", "middlebox_cert.pem"), own_netif_ptr(netif), ssl(nullptr), recv_ssl(nullptr), tunnel_socket_bio(nullptr), ssl_needs_shutdown(true), recv_needs_shutdown(true),
+    tunnel_dst_port("12345"),
+#ifdef USE_ECDSA
+    ssl_engine("ECDHE-ECDSA-AES128-GCM-SHA256", "middlebox_cert.pem"),
+#else
+    ssl_engine("ECDHE-RSA-AES256-GCM-SHA384", "middlebox_cert.pem"),
+#endif
+    own_netif_ptr(netif), ssl(nullptr), recv_ssl(nullptr), tunnel_socket_bio(nullptr), ssl_needs_shutdown(true), recv_needs_shutdown(true),
     netif_rloop_thread_id(), spinlock__tunnel_is_open(ATOMIC_FLAG_INIT)
     {
 #ifdef DTLSIF_DEBUG_PRINTS

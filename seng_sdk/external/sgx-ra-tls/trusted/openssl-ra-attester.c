@@ -20,6 +20,7 @@
 // borrowed from https://github.com/bminor/glibc/blob/5cb226d7e4e710939cff7288bf9970cb52ec0dfa/string/memmem.c
 #define hash2(p) (((size_t)(p)[0] - ((size_t)(p)[-1] << 3)) % sizeof (shift))
 
+//#define USE_ECDSA 1
 //#define RASSL_DEBUG
 
 void *
@@ -215,6 +216,34 @@ void generate_x509
     crt = NULL;
 }
 
+#ifdef USE_ECDSA
+void sha256_ecdsa_pubkey
+(
+    unsigned char hash[SHA256_DIGEST_SIZE],
+    EC_KEY* key
+)
+{
+    int len = i2o_ECPublicKey(key, NULL);
+    assert(len > 0);
+    //assert(len == 97);
+
+    unsigned char buf[len];
+    unsigned char* p = buf;
+    len = i2o_ECPublicKey(key, &p);
+
+    unsigned char md_value[EVP_MAX_MD_SIZE];
+    uint32_t md_len;
+
+    EVP_MD_CTX* mdctx = EVP_MD_CTX_create();
+    const EVP_MD* md = EVP_sha256();
+    EVP_DigestInit_ex(mdctx, md, NULL);
+    EVP_DigestUpdate(mdctx, buf, len);
+    EVP_DigestFinal_ex(mdctx, md_value, &md_len);
+    assert(md_len == SHA256_DIGEST_SIZE);
+    EVP_MD_CTX_destroy(mdctx);
+    memcpy(hash, md_value, SHA256_DIGEST_SIZE);
+}
+#else
 void sha256_rsa_pubkey
 (
     unsigned char hash[SHA256_DIGEST_SIZE],
@@ -242,6 +271,7 @@ void sha256_rsa_pubkey
     EVP_MD_CTX_destroy(mdctx);
     memcpy(hash, md_value, SHA256_DIGEST_SIZE);
 }
+#endif
 
 static void
 openssl_create_key_and_x509
@@ -262,6 +292,29 @@ openssl_create_key_and_x509
             timeofday_ok_key = 0;
         }
 #endif
+
+    uint8_t der[4096];
+    int derSz;
+    unsigned char* p = der;
+
+#ifdef USE_ECDSA
+    EC_KEY *key;
+    int eccgrp;
+
+    eccgrp = OBJ_txt2nid("secp384r1");
+    key = EC_KEY_new_by_curve_name(eccgrp);
+
+    EC_KEY_set_asn1_flag(key, OPENSSL_EC_NAMED_CURVE);
+
+    int res = EC_KEY_generate_key(key);
+    if (!res) {
+        printf("Failed to generate EC key\n");
+    }
+    assert (res);
+
+    derSz = i2d_ECPrivateKey(key, NULL);
+    i2d_ECPrivateKey(key, &p);
+#else
     /* Generate key. */
     //RSA* key;
     RSA *key = RSA_new();
@@ -300,12 +353,12 @@ openssl_create_key_and_x509
 
   //  assert(NULL != key);
     
-    uint8_t der[4096];
-    int derSz = i2d_RSAPrivateKey(key, NULL);
+    derSz = i2d_RSAPrivateKey(key, NULL);
+    i2d_RSAPrivateKey(key, &p);
+#endif
+
   //  assert(derSz >= 0);
   //  assert(derSz <= (int) *der_key_len);
-    unsigned char* p = der;
-    i2d_RSAPrivateKey(key, &p);
 
     *der_key_len = derSz;
     memcpy(der_key, der, derSz);
@@ -326,13 +379,21 @@ openssl_create_key_and_x509
 
     /* Generate certificate */
     sgx_report_data_t report_data = {0, };
+#ifdef USE_ECDSA
+    sha256_ecdsa_pubkey(report_data.d, key);
+#else
     sha256_rsa_pubkey(report_data.d, key);
+#endif
     attestation_verification_report_t attestation_report;
 
     do_remote_attestation(&report_data, opts, &attestation_report);
 
     EVP_PKEY* evp_key = EVP_PKEY_new();
+#ifdef USE_ECDSA
+    EVP_PKEY_assign_EC_KEY(evp_key, key);
+#else
     EVP_PKEY_assign_RSA(evp_key, key);
+#endif
 #ifdef MEASURE_FINE_GRAINED_SETUP_TIME
         int timeofday_ok = 1;
         struct timeval listen_tv_start, listen_tv_end;
